@@ -2,911 +2,541 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pin.top — GA4 Аудит 24 місяці</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pin.top — Marketing Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg: #f0f2f5;
-  --card: #ffffff;
-  --header: #0f172a;
-  --accent: #6366f1;
-  --accent2: #10b981;
-  --danger: #ef4444;
-  --warn: #f59e0b;
-  --text: #1e293b;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --c1:#6366f1; --c2:#10b981; --c3:#f59e0b; --c4:#ef4444; --c5:#3b82f6;
-  --c6:#8b5cf6; --c7:#ec4899; --c8:#14b8a6; --c9:#f97316; --c10:#84cc16;
-}
+:root{--bg:#0b1020;--panel:#121830;--card:#1a2040;--border:#2a3155;--text:#e8ecf8;--muted:#8b93b0;--accent:#6366f1;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--pink:#ec4899;--purple:#8b5cf6;--teal:#14b8a6;--orange:#f97316;--lime:#84cc16;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
-.wrap{max-width:1480px;margin:0 auto;padding:16px;}
-
-/* HEADER */
-.hdr{background:var(--header);color:#fff;border-radius:12px;padding:20px 28px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-.hdr h1{font-size:22px;font-weight:700;letter-spacing:-0.3px;}
-.hdr .sub{font-size:12px;color:#94a3b8;margin-top:3px;}
-.hdr-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.badge{background:rgba(99,102,241,0.25);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;}
-.badge.green{background:rgba(16,185,129,0.2);color:#6ee7b7;}
-.badge.orange{background:rgba(245,158,11,0.2);color:#fcd34d;}
-
-/* KPI ROW */
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;}
-.kpi{background:var(--card);border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid var(--accent);}
-.kpi.green{border-left-color:var(--accent2);}
-.kpi.orange{border-left-color:var(--warn);}
-.kpi.red{border-left-color:var(--danger);}
-.kpi.blue{border-left-color:#3b82f6;}
-.kpi.purple{border-left-color:#8b5cf6;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(180deg,#0b1020 0%,#141a38 100%);color:var(--text);font-size:14px;min-height:100vh;}
+.wrap{max-width:1480px;margin:0 auto;padding:20px;}
+.hdr{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.hdr-left h1{font-size:22px;font-weight:700;letter-spacing:-0.3px;background:linear-gradient(90deg,#818cf8,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-left .sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.period-switch{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:10px;border:1px solid var(--border);}
+.period-switch button{background:none;border:none;color:var(--muted);padding:8px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;}
+.period-switch button:hover{color:var(--text);}
+.period-switch button.active{background:var(--accent);color:#fff;}
+.custom-range{display:flex;gap:8px;align-items:center;background:var(--card);padding:6px 12px;border-radius:10px;border:1px solid var(--border);font-size:12px;color:var(--muted);}
+.custom-range input{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent);}
+.kpi.green::before{background:var(--green);}
+.kpi.amber::before{background:var(--amber);}
+.kpi.red::before{background:var(--red);}
+.kpi.blue::before{background:var(--blue);}
+.kpi.purple::before{background:var(--purple);}
 .kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
-.kpi-val{font-size:28px;font-weight:800;line-height:1;}
-.kpi-delta{font-size:12px;margin-top:6px;font-weight:600;}
-.kpi-delta.up{color:#10b981;} .kpi-delta.down{color:#ef4444;} .kpi-delta.neutral{color:var(--muted);}
-
-/* INSIGHTS */
-.insights-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:16px;}
-.insight{background:var(--card);border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
-.insight h3{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
-.insight ul{list-style:none;display:flex;flex-direction:column;gap:5px;}
-.insight li{font-size:12px;color:var(--muted);padding-left:14px;position:relative;line-height:1.4;}
-.insight li::before{content:'•';position:absolute;left:0;color:var(--accent);}
-.insight li b{color:var(--text);}
-.insight.warn h3{color:var(--warn);}
-.insight.good h3{color:var(--accent2);}
-.insight.info h3{color:var(--accent);}
-
-/* SECTIONS */
-.section-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.section-title span{font-size:11px;color:var(--muted);font-weight:400;}
-
-/* GRID LAYOUTS */
-.row2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px;}
-.row2-eq{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
-.row-full{margin-bottom:16px;}
-@media(max-width:900px){.row2,.row2-eq,.row3{grid-template-columns:1fr;}}
-
-/* CARD */
-.card{background:var(--card);border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
-.chart-wrap{position:relative;height:280px;}
-.chart-wrap.tall{height:340px;}
-.chart-wrap.short{height:220px;}
-
-/* TABLE */
-.tbl-scroll{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:12px;}
-th{background:#f8fafc;color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;}
-td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
-tr:hover td{background:#f8fafc;}
-.bar-cell{display:flex;align-items:center;gap:6px;}
-.bar-cell .mini-bar{height:6px;border-radius:3px;background:var(--accent);opacity:.7;min-width:2px;}
-.chip{display:inline-block;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;}
-.chip.good{background:#d1fae5;color:#065f46;}
-.chip.warn{background:#fef3c7;color:#92400e;}
-.chip.bad{background:#fee2e2;color:#991b1b;}
-
-/* FOOTER */
-.footer{text-align:center;color:var(--muted);font-size:11px;padding:20px 0 10px;}
-
-/* FILTER BAR */
-.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-.filter-bar label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-select{border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text);background:#fff;cursor:pointer;}
-
-/* HEATMAP */
-.heatmap-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:8px;}
-.hm-cell{border-radius:3px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,.9);font-weight:600;}
+.kpi-val{font-size:26px;font-weight:800;line-height:1;}
+.kpi-delta{font-size:12px;margin-top:8px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.kpi-delta.up{color:var(--green);}
+.kpi-delta.down{color:var(--red);}
+.kpi-delta.neutral{color:var(--muted);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:20px;}
+.section h2{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.section h2 .ic{font-size:18px;}
+.section h2 .tag{margin-left:auto;font-size:11px;font-weight:500;color:var(--muted);padding:3px 8px;background:var(--card);border-radius:6px;}
+.grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+.chart-box{position:relative;height:300px;}
+.chart-box.sm{height:220px;}
+.chart-box.lg{height:360px;}
+.channel-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.channel-card .ch-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;}
+.channel-card .ch-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.channel-card .ch-dot{width:10px;height:10px;border-radius:50%;}
+.channel-card .ch-pct{font-size:11px;color:var(--muted);}
+.channel-card .ch-val{font-size:20px;font-weight:800;}
+.channel-card .ch-row{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 8px;background:var(--card);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600;border-bottom:1px solid var(--border);}
+td{padding:10px 8px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(99,102,241,0.06);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.badge{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;display:inline-block;}
+.badge.green{background:rgba(16,185,129,.15);color:#34d399;}
+.badge.red{background:rgba(239,68,68,.15);color:#f87171;}
+.badge.blue{background:rgba(59,130,246,.15);color:#60a5fa;}
+.badge.amber{background:rgba(245,158,11,.15);color:#fbbf24;}
+.badge.purple{background:rgba(139,92,246,.15);color:#a78bfa;}
+.insight-box{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(16,185,129,.08));border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:14px 16px;margin-bottom:10px;font-size:13px;line-height:1.55;}
+.insight-box b{color:#a5b4fc;}
+.channel-table td{font-size:12px;}
+.paid-card{background:linear-gradient(135deg,var(--card) 0%,rgba(99,102,241,.05) 100%);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.paid-card .pc-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.paid-card .pc-logo{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
+.paid-card.tiktok .pc-logo{background:linear-gradient(135deg,#ff0050,#00f2ea);}
+.paid-card.google .pc-logo{background:linear-gradient(135deg,#4285f4,#34a853);}
+.paid-card.meta .pc-logo{background:linear-gradient(135deg,#0866ff,#1877f2);}
+.paid-card .pc-name{font-size:14px;font-weight:700;}
+.paid-card .pc-sub{font-size:11px;color:var(--muted);}
+.pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.pc-metric{background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px;}
+.pc-metric .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
+.pc-metric .v{font-size:17px;font-weight:700;margin-top:2px;}
+.campaign-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px;}
+.campaign-row:last-child{border-bottom:none;}
+.campaign-row .cn{color:var(--muted);flex:1;margin-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.footer{margin-top:30px;padding:18px;text-align:center;color:var(--muted);font-size:11px;}
+.footer a{color:var(--accent);text-decoration:none;}
+.tab-switch{display:flex;gap:4px;margin-bottom:14px;}
+.tab-switch button{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;}
+.tab-switch button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.scroll-h{max-height:340px;overflow-y:auto;}
+.scroll-h::-webkit-scrollbar{width:6px;} .scroll-h::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<!-- HEADER -->
 <div class="hdr">
-  <div>
-    <h1>📊 Pin.top — GA4 Глибокий аудит</h1>
-    <div class="sub">Google Analytics 4 · Property 358528411 · Дані за 24 місяці (Квіт 2024 — Кві 2026)</div>
-    <div style="background:#10b981;color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;margin-top:8px;display:inline-block;"><a href="./weekly-2026-04-20.md" style="color:#fff;text-decoration:none;">📈 Новий тижневий звіт 14–20.04 →</a></div>
+  <div class="hdr-left">
+    <h1>📊 pin.top · Marketing Dashboard</h1>
+    <div class="sub">GA4 Property 358528411 · TikTok · Google Ads · Meta · <span id="dataUpdated"></span></div>
   </div>
-  <div class="hdr-right">
-    <span class="badge green">Ріст х4 р/р</span>
-    <span class="badge">697K сесій за 24 міс</span>
-    <span class="badge orange">Звіт: 15 квіт 2026</span>
-  </div>
-</div>
-
-<!-- KPI CARDS -->
-<div class="kpi-row">
-  <div class="kpi">
-    <div class="kpi-label">Сесії (30 днів)</div>
-    <div class="kpi-val">38,642</div>
-    <div class="kpi-delta down">▼ 22% vs бер 2026 (49,534)</div>
-  </div>
-  <div class="kpi green">
-    <div class="kpi-label">Ріст р/р (бер)</div>
-    <div class="kpi-val">+311%</div>
-    <div class="kpi-delta up">▲ бер 2025 (12,050) → бер 2026 (49,534)</div>
-  </div>
-  <div class="kpi blue">
-    <div class="kpi-label">Нові користувачі (30д)</div>
-    <div class="kpi-val">19,763</div>
-    <div class="kpi-delta down">▼ 26.5% vs бер (26,898)</div>
-  </div>
-  <div class="kpi purple">
-    <div class="kpi-label">Bounce Rate (30д)</div>
-    <div class="kpi-val">29.5%</div>
-    <div class="kpi-delta up">▲ покращення vs бер (33.7%)</div>
-  </div>
-  <div class="kpi orange">
-    <div class="kpi-label">Середня сесія (30д)</div>
-    <div class="kpi-val">3.3 хв</div>
-    <div class="kpi-delta up">▲ стабільно (бер: 3.0 хв)</div>
-  </div>
-  <div class="kpi red">
-    <div class="kpi-label">Конверсії GA4 (30д)</div>
-    <div class="kpi-val">80,536</div>
-    <div class="kpi-delta neutral">⚠️ включає engagement-події</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <div class="period-switch">
+      <button data-period="7" class="active">7 днів</button>
+      <button data-period="30">30 днів</button>
+      <button data-period="90">90 днів</button>
+      <button data-period="365">Рік</button>
+      <button data-period="custom">Custom</button>
+    </div>
+    <div class="custom-range" id="customRange" style="display:none;">
+      <span>від</span>
+      <input type="date" id="dateFrom">
+      <span>до</span>
+      <input type="date" id="dateTo">
+    </div>
   </div>
 </div>
 
-<!-- KEY INSIGHTS -->
-<div class="insights-row">
-  <div class="insight good">
-    <h3>🚀 Ключові досягнення</h3>
-    <ul>
-      <li><b>Ріст ×4 р/р:</b> Берез 2025 (12K) → Берез 2026 (49K сесій)</li>
-      <li><b>Рекорд:</b> лютий 2026 — 61,352 сесії за місяць</li>
-      <li><b>Сильний бренд:</b> Direct — найбільший канал (33% трафіку / 90д)</li>
-      <li><b>Якість SEO:</b> Organic Search — bounce 25.9%, avg 4.5 хв</li>
-      <li><b>Референс:</b> my.milx.app — 14K сесій/90д, мін. відмов</li>
-    </ul>
+<!-- KPI ROW -->
+<div class="kpi-row" id="kpiRow"></div>
+
+<!-- INSIGHTS -->
+<div class="section">
+  <h2><span class="ic">💡</span>Що сталося за обраний період</h2>
+  <div id="insights"></div>
+</div>
+
+<!-- TREND CHART -->
+<div class="section">
+  <h2><span class="ic">📈</span>Динаміка трафіку <span class="tag" id="trendRange"></span></h2>
+  <div class="chart-box lg"><canvas id="trendChart"></canvas></div>
+</div>
+
+<!-- CHANNELS -->
+<div class="section">
+  <h2><span class="ic">🌐</span>Канали трафіку</h2>
+  <div class="grid2">
+    <div class="chart-box"><canvas id="channelChart"></canvas></div>
+    <div>
+      <table class="channel-table">
+        <thead><tr><th>Канал</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Конв.</th></tr></thead>
+        <tbody id="channelTable"></tbody>
+      </table>
+    </div>
   </div>
-  <div class="insight warn">
-    <h3>⚠️ Проблеми та аномалії</h3>
-    <ul>
-      <li><b>TikTok CPC:</b> bounce rate 79%, середня сесія 0.4 хв — катастрофа</li>
-      <li><b>Paid Social:</b> bounce 72.5% — лендінг не конвертує</li>
-      <li><b>Квітень 2024:</b> аномальний пік (32K) без конверсій — можливо тест</li>
-      <li><b>(not set) landing:</b> 5,473 сесій з BR 86.2% — проблема маршрутизації</li>
-      <li><b>Unassigned канал:</b> bounce 97.4% — проблема з тегуванням</li>
-      <li><b>Конверсії:</b> включають engagement-події, не тільки реєстрації</li>
-    </ul>
+</div>
+
+<!-- PAID CAMPAIGNS -->
+<div class="section">
+  <h2><span class="ic">🚀</span>Платні запуски (поточний тиждень)</h2>
+  <div class="grid3" id="paidCards"></div>
+</div>
+
+<!-- AUDIENCE -->
+<div class="section">
+  <h2><span class="ic">👥</span>Хто реєструвався (тиждень)</h2>
+  <div class="tab-switch" id="audTab">
+    <button data-tab="week" class="active">Тиждень</button>
+    <button data-tab="month">Місяць</button>
   </div>
-  <div class="insight info">
-    <h3>💡 Точки зростання</h3>
-    <ul>
-      <li><b>Органічний пошук:</b> лише 3.2% трафіку — великий SEO потенціал</li>
-      <li><b>Мобайл:</b> 53% трафіку — пріоритет mobile UX</li>
-      <li><b>Вівторок 13-15 год:</b> пік активності — планувати кампанії</li>
-      <li><b>Німеччина:</b> 2-га країна (11K/90д) — вихід на діаспору</li>
-      <li><b>Email:</b> мінімальний трафік (283 сесії) — нереалізований потенціал</li>
-    </ul>
+  <div class="grid3">
+    <div>
+      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Вік</h3>
+      <div class="chart-box sm"><canvas id="ageChart"></canvas></div>
+    </div>
+    <div>
+      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Стать</h3>
+      <div class="chart-box sm"><canvas id="genderChart"></canvas></div>
+    </div>
+    <div>
+      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Мова</h3>
+      <div class="chart-box sm"><canvas id="langChart"></canvas></div>
+    </div>
+  </div>
+  <h3 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px;">Топ міст</h3>
+  <div class="chart-box"><canvas id="cityChart"></canvas></div>
+</div>
+
+<!-- BEHAVIOR -->
+<div class="section">
+  <h2><span class="ic">🧭</span>Поведінка аудиторії</h2>
+  <div class="grid2">
+    <div>
+      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Engagement по каналах</h3>
+      <table>
+        <thead><tr><th>Джерело</th><th class="num">Сесії</th><th class="num">Engagement</th><th class="num">Час</th><th class="num">PV/Sess</th></tr></thead>
+        <tbody id="engageTable"></tbody>
+      </table>
+    </div>
+    <div>
+      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Device mix</h3>
+      <div class="chart-box sm"><canvas id="deviceChart"></canvas></div>
+    </div>
+  </div>
+  <h3 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px;">Найпопулярніші сторінки</h3>
+  <div class="scroll-h">
+    <table>
+      <thead><tr><th>Сторінка</th><th class="num">Перегляди</th><th class="num">Користувачів</th><th class="num">Час на сесії</th></tr></thead>
+      <tbody id="pagesTable"></tbody>
+    </table>
   </div>
 </div>
 
 <!-- MONTHLY TREND -->
-<div class="row-full card">
-  <div class="section-title">📅 Місячна динаміка сесій та нових користувачів <span>квіт 2024 — кві 2026 (24 місяці)</span></div>
-  <div class="chart-wrap tall">
-    <canvas id="chartMonthly"></canvas>
-  </div>
+<div class="section">
+  <h2><span class="ic">📅</span>Місячна динаміка (12 міс)</h2>
+  <div class="chart-box"><canvas id="monthlyChart"></canvas></div>
 </div>
 
-<!-- YoY + CONVERSIONS -->
-<div class="row2">
-  <div class="card">
-    <div class="section-title">📈 Порівняння рік до року <span>по місяцях (2025 vs 2026)</span></div>
-    <div class="chart-wrap">
-      <canvas id="chartYoy"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">💰 Конверсії по місяцях <span>GA4 conversion events</span></div>
-    <div class="chart-wrap">
-      <canvas id="chartConversions"></canvas>
-    </div>
-  </div>
+<div class="footer">
+  Оновлення щопонеділка о 9:00 · <a href="./weekly-2026-04-20.html">Детальний тижневий звіт</a> · <a href="https://github.com/Vladimir-VF/pintop-ga4-dashboard">GitHub</a>
 </div>
 
-<!-- BOUNCE RATE + AVG DURATION -->
-<div class="row2-eq">
-  <div class="card">
-    <div class="section-title">↩️ Bounce Rate по місяцях <span>%</span></div>
-    <div class="chart-wrap short">
-      <canvas id="chartBounce"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">⏱ Середня тривалість сесії <span>хвилини</span></div>
-    <div class="chart-wrap short">
-      <canvas id="chartDuration"></canvas>
-    </div>
-  </div>
 </div>
 
-<!-- CHANNELS 90D -->
-<div class="row2">
-  <div class="card">
-    <div class="section-title">📊 Канали трафіку (90 днів) <span>сесії</span></div>
-    <div class="chart-wrap">
-      <canvas id="chartChannelsBar"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">🍕 Розподіл каналів <span>частка сесій 90д</span></div>
-    <div class="chart-wrap">
-      <canvas id="chartChannelsDoughnut"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- CHANNELS QUALITY TABLE -->
-<div class="row-full card">
-  <div class="section-title">📋 Якість каналів трафіку (90 днів)</div>
-  <div class="tbl-scroll">
-    <table id="tblChannels"></table>
-  </div>
-</div>
-
-<!-- UTM SOURCES -->
-<div class="row-full card">
-  <div class="section-title">🔗 UTM-джерела трафіку (90 днів) <span>топ 20</span></div>
-  <div class="tbl-scroll">
-    <table id="tblUtm"></table>
-  </div>
-</div>
-
-<!-- GEO -->
-<div class="row2">
-  <div class="card">
-    <div class="section-title">🌍 Географія (90 днів) <span>топ 15 країн — сесії</span></div>
-    <div class="chart-wrap tall">
-      <canvas id="chartGeo"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">📍 Деталі по країнах</div>
-    <div class="tbl-scroll">
-      <table id="tblGeo"></table>
-    </div>
-  </div>
-</div>
-
-<!-- DEVICES -->
-<div class="row3">
-  <div class="card">
-    <div class="section-title">📱 Пристрої <span>сесії 90д</span></div>
-    <div class="chart-wrap short">
-      <canvas id="chartDevices"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">⏰ Активність по годинах <span>сесії за 30д</span></div>
-    <div class="chart-wrap short">
-      <canvas id="chartHourly"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">📅 Активність по днях тижня <span>30 днів</span></div>
-    <div class="chart-wrap short">
-      <canvas id="chartDayOfWeek"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- NEW vs RETURNING -->
-<div class="row2">
-  <div class="card">
-    <div class="section-title">👥 Нові vs Поверненні <span>місячний тренд 24 місяці</span></div>
-    <div class="chart-wrap tall">
-      <canvas id="chartNvr"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">🎯 Топ події та конверсії <span>90 днів</span></div>
-    <div class="tbl-scroll" style="max-height:340px;overflow-y:auto;">
-      <table id="tblEvents"></table>
-    </div>
-  </div>
-</div>
-
-<!-- LANDING PAGES -->
-<div class="row-full card">
-  <div class="section-title">🏁 Лендінг-сторінки <span>топ 15 за сесіями (90д)</span></div>
-  <div class="tbl-scroll">
-    <table id="tblLanding"></table>
-  </div>
-</div>
-
-<!-- IT & TECH INSIGHTS -->
-<div class="row-full card" style="border-left:4px solid #3b82f6;">
-  <div class="section-title">🛠 Технічний аналіз для IT-команди <span>на основі GA4 даних</span></div>
-</div>
-
-<div class="row2-eq">
-  <div class="card">
-    <div class="section-title">🔄 Воронка реєстрації <span>90 днів — drop-off аналіз</span></div>
-    <div class="chart-wrap tall">
-      <canvas id="chartSignupFunnel"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">⚠️ Проблеми трекінгу <span>потребують уваги розробників</span></div>
-    <div style="padding:8px 0;">
-      <div style="background:#fef3c7;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
-        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:6px;">🔴 Критичні</div>
-        <ul style="list-style:none;font-size:12px;color:#78350f;">
-          <li style="margin-bottom:4px;">• <b>registration_complete</b> — event ВІДСУТНІЙ. Неможливо відрізнити нову реєстрацію від повторного входу</li>
-          <li style="margin-bottom:4px;">• <b>signinsignup</b> (7,539 events/90д) — один event для sign-in і sign-up. Потрібно розділити</li>
-          <li style="margin-bottom:4px;">• <b>(not set)</b> landing page — 5,473 сесій/90д, BR 86.2%. Битий або відсутній URL</li>
-          <li style="margin-bottom:4px;">• <b>Unassigned</b> канал — 2,955 сесій, BR 97.4%. Проблема з UTM тегуванням</li>
-        </ul>
-      </div>
-      <div style="background:#dbeafe;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
-        <div style="font-weight:700;font-size:13px;color:#1e40af;margin-bottom:6px;">🟡 Рекомендації</div>
-        <ul style="list-style:none;font-size:12px;color:#1e3a5f;">
-          <li style="margin-bottom:4px;">• <b>onboarding_complete</b> — додати event для відстеження завершення онбордингу</li>
-          <li style="margin-bottom:4px;">• <b>/fastfamily</b> — BR 67.2%, avg 41 сек. Перевірити лендінг</li>
-          <li style="margin-bottom:4px;">• <b>/milx/login</b> — BR 47.4%. Можливо зайві редіректи</li>
-          <li style="margin-bottom:4px;">• <b>Mobile iOS</b> — BR 33.5% (vs Android 31.4%). Перевірити responsive</li>
-        </ul>
-      </div>
-      <div style="background:#d1fae5;border-radius:8px;padding:14px 16px;">
-        <div style="font-weight:700;font-size:13px;color:#065f46;margin-bottom:6px;">🟢 Що працює добре</div>
-        <ul style="list-style:none;font-size:12px;color:#064e3b;">
-          <li style="margin-bottom:4px;">• <b>/login</b> — BR 8.3%, avg session 5.7 хв. Основний auth flow працює</li>
-          <li style="margin-bottom:4px;">• <b>/sell-hub/*</b> — мінімальний bounce, high engagement</li>
-          <li style="margin-bottom:4px;">• <b>/air/login</b> — BR 13.6%, стабільний OAuth потік</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row2-eq">
-  <div class="card">
-    <div class="section-title">📱 Пристрої та ОС (30 днів) <span>для пріоритизації тестування</span></div>
-    <div class="tbl-scroll">
-      <table id="tblDevicesIT"></table>
-    </div>
-  </div>
-  <div class="card">
-    <div class="section-title">🏁 Сторінки з проблемами <span>BR > 40% та > 500 сесій</span></div>
-    <div class="tbl-scroll">
-      <table id="tblProblemPages"></table>
-    </div>
-  </div>
-</div>
-
-<!-- WEEKLY TREND -->
-<div class="row-full card">
-  <div class="section-title">📆 Тижнева динаміка <span>52 тижні</span></div>
-  <div class="chart-wrap tall">
-    <canvas id="chartWeekly"></canvas>
-  </div>
-</div>
-
-<!-- PLATFORM SUMMARY -->
-<div class="row3">
-  <div class="card">
-    <div class="section-title">🖥 Топ платформи</div>
-    <div class="tbl-scroll"><table id="tblDeviceDetail"></table></div>
-  </div>
-  <div class="card" style="grid-column:span 2;">
-    <div class="section-title">📊 Динаміка каналів по місяцях <span>топ 5 каналів</span></div>
-    <div class="chart-wrap tall"><canvas id="chartChannelsTrend"></canvas></div>
-  </div>
-</div>
-
-<div class="footer">Pin.top GA4 Deep Audit · Дані: Google Analytics 4 API · Сформовано: 15 квітня 2026 · Дані оновлено: 15 квітня 2026</div>
-</div>
-
+<script src="./data.js"></script>
 <script>
-// ═══════════════════════════ DATA ═══════════════════════════
-const MONTHLY = [{"ym":"2024-04","sessions":32531,"users":25719,"newUsers":25347,"pageViews":55481,"bounceRate":62.7,"avgDuration":1.2,"conversions":0},{"ym":"2024-05","sessions":29981,"users":21883,"newUsers":21531,"pageViews":44906,"bounceRate":70.7,"avgDuration":1.2,"conversions":0},{"ym":"2024-06","sessions":24699,"users":18406,"newUsers":18040,"pageViews":39745,"bounceRate":69.8,"avgDuration":1.2,"conversions":0},{"ym":"2024-07","sessions":35714,"users":29121,"newUsers":28402,"pageViews":49579,"bounceRate":66.7,"avgDuration":0.9,"conversions":0},{"ym":"2024-08","sessions":27242,"users":20482,"newUsers":20038,"pageViews":39441,"bounceRate":69.9,"avgDuration":1.1,"conversions":0},{"ym":"2024-09","sessions":20273,"users":14966,"newUsers":14689,"pageViews":30599,"bounceRate":72.0,"avgDuration":1.1,"conversions":0},{"ym":"2024-10","sessions":20927,"users":16058,"newUsers":15777,"pageViews":34249,"bounceRate":72.8,"avgDuration":1.3,"conversions":193},{"ym":"2024-11","sessions":15417,"users":11259,"newUsers":10999,"pageViews":27770,"bounceRate":69.9,"avgDuration":1.7,"conversions":358},{"ym":"2024-12","sessions":10363,"users":7387,"newUsers":7076,"pageViews":25162,"bounceRate":60.4,"avgDuration":2.7,"conversions":535},{"ym":"2025-01","sessions":10592,"users":7573,"newUsers":7237,"pageViews":30111,"bounceRate":51.0,"avgDuration":3.6,"conversions":4665},{"ym":"2025-02","sessions":8560,"users":6014,"newUsers":6266,"pageViews":26680,"bounceRate":51.4,"avgDuration":3.2,"conversions":9577},{"ym":"2025-03","sessions":12050,"users":9160,"newUsers":8926,"pageViews":32012,"bounceRate":49.0,"avgDuration":3.3,"conversions":13448},{"ym":"2025-04","sessions":14992,"users":12189,"newUsers":11936,"pageViews":33380,"bounceRate":39.9,"avgDuration":3.3,"conversions":22361},{"ym":"2025-05","sessions":40976,"users":23490,"newUsers":20363,"pageViews":136506,"bounceRate":18.9,"avgDuration":3.2,"conversions":69715},{"ym":"2025-06","sessions":34719,"users":19208,"newUsers":16113,"pageViews":140666,"bounceRate":20.3,"avgDuration":3.8,"conversions":52025},{"ym":"2025-07","sessions":37614,"users":19637,"newUsers":16147,"pageViews":158810,"bounceRate":20.2,"avgDuration":4.4,"conversions":91199},{"ym":"2025-08","sessions":40195,"users":21986,"newUsers":17943,"pageViews":159325,"bounceRate":21.6,"avgDuration":3.9,"conversions":93684},{"ym":"2025-09","sessions":29557,"users":13866,"newUsers":11450,"pageViews":121190,"bounceRate":22.7,"avgDuration":4.5,"conversions":65875},{"ym":"2025-10","sessions":36559,"users":20142,"newUsers":17212,"pageViews":137975,"bounceRate":20.6,"avgDuration":3.7,"conversions":75489},{"ym":"2025-11","sessions":37235,"users":22211,"newUsers":20732,"pageViews":138922,"bounceRate":26.9,"avgDuration":3.6,"conversions":79497},{"ym":"2025-12","sessions":32534,"users":15759,"newUsers":14078,"pageViews":132422,"bounceRate":24.9,"avgDuration":4.1,"conversions":62961},{"ym":"2026-01","sessions":32868,"users":17049,"newUsers":14996,"pageViews":134313,"bounceRate":25.1,"avgDuration":4.6,"conversions":53263},{"ym":"2026-02","sessions":61352,"users":40702,"newUsers":38617,"pageViews":178978,"bounceRate":40.3,"avgDuration":2.8,"conversions":141515},{"ym":"2026-03","sessions":49534,"users":29782,"newUsers":26898,"pageViews":156968,"bounceRate":33.7,"avgDuration":3.0,"conversions":110724}];
+(()=>{
+const D = window.PINTOP_DATA;
+const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#60a5fa','#a78bfa','#fb7185'];
+const $ = id => document.getElementById(id);
+const charts = {};
+const fmt = n => (n>=1000? (n/1000).toFixed(1)+'k' : Math.round(n).toString());
+const pct = n => (n*100).toFixed(1)+'%';
+const dur = s => s<60? s.toFixed(0)+'с' : Math.floor(s/60)+'м '+Math.floor(s%60)+'с';
 
-const CHANNELS90 = [{"channel":"Direct","sessions":48764,"newUsers":30678,"bounceRate":20.0,"avgDuration":3.6,"conversions":106745},{"channel":"Referral","sessions":43464,"newUsers":11847,"bounceRate":29.9,"avgDuration":5.0,"conversions":49458},{"channel":"Paid Social","sessions":25411,"newUsers":22783,"bounceRate":72.5,"avgDuration":0.6,"conversions":36651},{"channel":"Organic Social","sessions":5219,"newUsers":2445,"bounceRate":18.4,"avgDuration":2.3,"conversions":18891},{"channel":"Paid Search","sessions":4826,"newUsers":3522,"bounceRate":26.9,"avgDuration":2.4,"conversions":33413},{"channel":"Organic Search","sessions":4719,"newUsers":1790,"bounceRate":25.9,"avgDuration":4.5,"conversions":30727},{"channel":"Cross-network","sessions":3558,"newUsers":2399,"bounceRate":45.2,"avgDuration":1.9,"conversions":12987},{"channel":"Organic Video","sessions":3535,"newUsers":2460,"bounceRate":42.4,"avgDuration":1.3,"conversions":5703},{"channel":"Unassigned","sessions":2955,"newUsers":59,"bounceRate":97.4,"avgDuration":6.0,"conversions":8656},{"channel":"Display","sessions":2924,"newUsers":2805,"bounceRate":47.5,"avgDuration":0.5,"conversions":3755},{"channel":"Email","sessions":283,"newUsers":45,"bounceRate":53.7,"avgDuration":3.9,"conversions":35},{"channel":"Paid Video","sessions":108,"newUsers":91,"bounceRate":65.7,"avgDuration":1.8,"conversions":38}];
+// Parse date
+const parseD = s => {
+  const y=+s.slice(0,4), m=+s.slice(4,6)-1, d=+s.slice(6,8);
+  return new Date(y,m,d);
+};
 
-const UTM = [{"source":"(direct)","medium":"(none)","label":"Direct","sessions":48764,"newUsers":30678,"conversions":106745,"bounceRate":20.0,"avgDuration":3.6},{"source":"my.milx.app","medium":"referral","label":"my.milx.app (referral)","sessions":14167,"newUsers":1263,"conversions":485,"bounceRate":33.0,"avgDuration":5.5},{"source":"tiktok","medium":"cpc","label":"TikTok CPC (1)","sessions":10866,"newUsers":9837,"conversions":9213,"bounceRate":79.4,"avgDuration":0.4},{"source":"google","medium":"cpc","label":"Google CPC (1)","sessions":7386,"newUsers":6044,"conversions":34935,"bounceRate":34.8,"avgDuration":1.7},{"source":"tiktok","medium":"cpc","label":"TikTok CPC (2)","sessions":7242,"newUsers":6588,"conversions":7533,"bounceRate":79.1,"avgDuration":0.5},{"source":"accounts.google.com","medium":"referral","label":"accounts.google.com","sessions":6774,"newUsers":39,"conversions":3583,"bounceRate":34.0,"avgDuration":6.7},{"source":"my.pin.top","medium":"referral","label":"my.pin.top (referral)","sessions":6485,"newUsers":3811,"conversions":4713,"bounceRate":36.0,"avgDuration":2.5},{"source":"google","medium":"organic","label":"Google Organic","sessions":4443,"newUsers":1712,"conversions":29667,"bounceRate":26.8,"avgDuration":4.5},{"source":"pin.top","medium":"referral","label":"pin.top (referral)","sessions":3605,"newUsers":2423,"conversions":2467,"bounceRate":31.7,"avgDuration":2.1},{"source":"google","medium":"cpc","label":"Google CPC (2)","sessions":3479,"newUsers":2328,"conversions":11950,"bounceRate":46.0,"avgDuration":1.9},{"source":"youtube.com","medium":"referral","label":"YouTube (referral)","sessions":3468,"newUsers":2404,"conversions":5571,"bounceRate":42.6,"avgDuration":1.3},{"source":"metadatatranslation.ai","medium":"referral","label":"metadatatranslation.ai","sessions":3241,"newUsers":2639,"conversions":737,"bounceRate":13.2,"avgDuration":4.3},{"source":"(not set)","medium":"(not set)","label":"(not set)","sessions":2817,"newUsers":0,"conversions":8150,"bounceRate":100.0,"avgDuration":6.1},{"source":"meta","medium":"paid_social","label":"Meta Paid Social (1)","sessions":2709,"newUsers":2271,"conversions":9939,"bounceRate":46.7,"avgDuration":1.0},{"source":"my.scalelab.com","medium":"referral","label":"my.scalelab.com","sessions":2323,"newUsers":1162,"conversions":1563,"bounceRate":22.0,"avgDuration":3.0},{"source":"tiktok","medium":"cpc","label":"TikTok CPC (3)","sessions":1445,"newUsers":1299,"conversions":1454,"bounceRate":78.9,"avgDuration":0.5},{"source":"tiktok","medium":"cpc","label":"TikTok CPC (4)","sessions":1433,"newUsers":1282,"conversions":1605,"bounceRate":82.2,"avgDuration":0.4},{"source":"meta","medium":"paid_social","label":"Meta Paid Social (2)","sessions":1381,"newUsers":1138,"conversions":6021,"bounceRate":40.3,"avgDuration":1.6},{"source":"m.facebook.com","medium":"referral","label":"Facebook (referral)","sessions":1103,"newUsers":492,"conversions":3946,"bounceRate":17.0,"avgDuration":1.6},{"source":"tiktok.com","medium":"referral","label":"tiktok.com (referral)","sessions":1097,"newUsers":41,"conversions":4093,"bounceRate":10.9,"avgDuration":3.1}];
+// TODAY = max date in daily365
+const maxDate = D.daily365.reduce((m,r)=> r.d>m?r.d:m, '20250101');
+const today = parseD(maxDate);
+$('dataUpdated').textContent = 'оновлено ' + maxDate.slice(0,4)+'-'+maxDate.slice(4,6)+'-'+maxDate.slice(6,8);
 
-const GEO = [{"country":"Ukraine","sessions":77201,"newUsers":46505,"conversions":227476,"bounceRate":41.9},{"country":"Germany","sessions":11441,"newUsers":9073,"conversions":8819,"bounceRate":20.9},{"country":"United States","sessions":8720,"newUsers":5485,"conversions":13177,"bounceRate":25.8},{"country":"India","sessions":3660,"newUsers":1992,"conversions":3569,"bounceRate":28.4},{"country":"Indonesia","sessions":2727,"newUsers":693,"conversions":1199,"bounceRate":33.0},{"country":"Uzbekistan","sessions":2306,"newUsers":378,"conversions":304,"bounceRate":27.0},{"country":"China","sessions":2219,"newUsers":1904,"conversions":1328,"bounceRate":36.5},{"country":"Canada","sessions":1679,"newUsers":761,"conversions":6152,"bounceRate":26.0},{"country":"Spain","sessions":1595,"newUsers":366,"conversions":1566,"bounceRate":38.7},{"country":"Azerbaijan","sessions":1590,"newUsers":76,"conversions":438,"bounceRate":25.4},{"country":"Russia","sessions":1571,"newUsers":536,"conversions":779,"bounceRate":34.2},{"country":"Türkiye","sessions":1499,"newUsers":351,"conversions":838,"bounceRate":27.2},{"country":"Brazil","sessions":1464,"newUsers":599,"conversions":1283,"bounceRate":25.8},{"country":"Poland","sessions":1431,"newUsers":491,"conversions":2487,"bounceRate":27.3},{"country":"Pakistan","sessions":1421,"newUsers":789,"conversions":1666,"bounceRate":20.2}];
+let currentFrom=null, currentTo=null, currentPrevFrom=null, currentPrevTo=null;
 
-const DEVICE_SPLIT = [{"device":"Mobile","sessions":78328},{"device":"Desktop","sessions":66977},{"device":"Tablet","sessions":1238},{"device":"Smart TV","sessions":4}];
+function setPeriod(days){
+  const to = new Date(today);
+  const from = new Date(today); from.setDate(from.getDate() - days + 1);
+  const prevTo = new Date(from); prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate() - days + 1);
+  currentFrom = from; currentTo = to; currentPrevFrom = prevFrom; currentPrevTo = prevTo;
+  render();
+}
 
-const DEVICE_DETAIL = [{"device":"desktop","os":"Windows","sessions":44706,"bounceRate":27.5,"conversions":61466},{"device":"mobile","os":"iOS","sessions":35591,"bounceRate":52.4,"conversions":85336},{"device":"mobile","os":"Android","sessions":27699,"bounceRate":34.2,"conversions":75298},{"device":"desktop","os":"macOS","sessions":11303,"bounceRate":28.2,"conversions":38249},{"device":"mobile","os":"Android","sessions":6672,"bounceRate":32.7,"conversions":7757},{"device":"mobile","os":"iOS","sessions":5068,"bounceRate":35.8,"conversions":11538},{"device":"desktop","os":"macOS","sessions":2525,"bounceRate":26.5,"conversions":7642},{"device":"desktop","os":"Windows","sessions":2439,"bounceRate":34.3,"conversions":6927},{"device":"desktop","os":"Linux","sessions":1720,"bounceRate":18.0,"conversions":1058}];
+function setCustom(fromStr, toStr){
+  const f = new Date(fromStr), t = new Date(toStr);
+  const days = Math.round((t-f)/86400000)+1;
+  const prevTo = new Date(f); prevTo.setDate(prevTo.getDate()-1);
+  const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate()-days+1);
+  currentFrom=f; currentTo=t; currentPrevFrom=prevFrom; currentPrevTo=prevTo;
+  render();
+}
 
-const EVENTS = [{"event":"page_view","count":474302,"conversions":0,"users":84551},{"event":"scroll","count":217580,"conversions":0,"users":47440},{"event":"session_start","count":135969,"conversions":0,"users":82781},{"event":"user_engagement","count":125200,"conversions":0,"users":35466},{"event":"mypintop_engagement_all","count":99120,"conversions":99120,"users":2450},{"event":"first_visit","count":81415,"conversions":0,"users":79310},{"event":"mypintop_topmenuclick_all","count":65910,"conversions":65910,"users":2426},{"event":"mypintop_scroll50_done","count":52344,"conversions":52344,"users":20965},{"event":"form_start","count":41946,"conversions":0,"users":20659},{"event":"mypintop_myfunds_click","count":30324,"conversions":0,"users":2372},{"event":"pintop_c_all_engaged_audience","count":16420,"conversions":16420,"users":8559},{"event":"mypintop_sellhub_menu_all","count":14875,"conversions":14875,"users":1644},{"event":"air_signin_done","count":12560,"conversions":0,"users":8038},{"event":"video_progress","count":10710,"conversions":0,"users":1254}];
+function inRange(dateStr, from, to){
+  const d = parseD(dateStr);
+  return d>=from && d<=to;
+}
 
-const HOURLY = [{"hour":0,"sessions":1478,"conversions":4273},{"hour":1,"sessions":1080,"conversions":2131},{"hour":2,"sessions":727,"conversions":1690},{"hour":3,"sessions":604,"conversions":1119},{"hour":4,"sessions":656,"conversions":1258},{"hour":5,"sessions":589,"conversions":1134},{"hour":6,"sessions":780,"conversions":1336},{"hour":7,"sessions":1530,"conversions":2309},{"hour":8,"sessions":1765,"conversions":3148},{"hour":9,"sessions":2307,"conversions":5167},{"hour":10,"sessions":2562,"conversions":5111},{"hour":11,"sessions":2740,"conversions":5850},{"hour":12,"sessions":3048,"conversions":6105},{"hour":13,"sessions":3330,"conversions":6578},{"hour":14,"sessions":3338,"conversions":7189},{"hour":15,"sessions":3427,"conversions":7145},{"hour":16,"sessions":3251,"conversions":6353},{"hour":17,"sessions":2573,"conversions":6870},{"hour":18,"sessions":2315,"conversions":6688},{"hour":19,"sessions":2116,"conversions":5495},{"hour":20,"sessions":2010,"conversions":5002},{"hour":21,"sessions":2041,"conversions":5214},{"hour":22,"sessions":2307,"conversions":5301},{"hour":23,"sessions":1808,"conversions":4004}];
-
-const DOW = [{"day":"Нд","sessions":4030,"conversions":10723,"bounceRate":38.4},{"day":"Пн","sessions":7539,"conversions":15546,"bounceRate":33.5},{"day":"Вт","sessions":9067,"conversions":23504,"bounceRate":29.4},{"day":"Ср","sessions":8457,"conversions":17244,"bounceRate":42.1},{"day":"Чт","sessions":6690,"conversions":14955,"bounceRate":30.5},{"day":"Пт","sessions":6022,"conversions":13162,"bounceRate":32.2},{"day":"Сб","sessions":4187,"conversions":11336,"bounceRate":37.2}];
-
-const YOY = [{"month":"Січ","thisYear":32868,"lastYear":10592},{"month":"Лют","thisYear":61352,"lastYear":8560},{"month":"Бер","thisYear":49534,"lastYear":12050},{"month":"Кві","thisYear":14992,"lastYear":32531},{"month":"Тра","thisYear":40976,"lastYear":29981},{"month":"Чер","thisYear":34719,"lastYear":24699},{"month":"Лип","thisYear":37614,"lastYear":35714},{"month":"Сер","thisYear":40195,"lastYear":27242},{"month":"Вер","thisYear":29557,"lastYear":20273},{"month":"Жов","thisYear":36559,"lastYear":20927},{"month":"Лис","thisYear":37235,"lastYear":15417},{"month":"Гру","thisYear":32534,"lastYear":10363}];
-
-const NVR_RAW = [{"ym":"2024-04","type":"new","sessions":25348},{"ym":"2024-04","type":"returning","sessions":3658},{"ym":"2024-05","type":"new","sessions":21059},{"ym":"2024-05","type":"returning","sessions":3582},{"ym":"2024-06","type":"new","sessions":17491},{"ym":"2024-06","type":"returning","sessions":3169},{"ym":"2024-07","type":"new","sessions":28634},{"ym":"2024-07","type":"returning","sessions":4077},{"ym":"2024-08","type":"new","sessions":20038},{"ym":"2024-08","type":"returning","sessions":3374},{"ym":"2024-09","type":"new","sessions":14689},{"ym":"2024-09","type":"returning","sessions":3040},{"ym":"2024-10","type":"new","sessions":15777},{"ym":"2024-10","type":"returning","sessions":3101},{"ym":"2024-11","type":"new","sessions":10999},{"ym":"2024-11","type":"returning","sessions":2681},{"ym":"2024-12","type":"new","sessions":7076},{"ym":"2024-12","type":"returning","sessions":2065},{"ym":"2025-01","type":"new","sessions":7237},{"ym":"2025-01","type":"returning","sessions":2162},{"ym":"2025-02","type":"new","sessions":6266},{"ym":"2025-02","type":"returning","sessions":1855},{"ym":"2025-03","type":"new","sessions":8926},{"ym":"2025-03","type":"returning","sessions":2557},{"ym":"2025-04","type":"new","sessions":11936},{"ym":"2025-04","type":"returning","sessions":2555},{"ym":"2025-05","type":"new","sessions":20363},{"ym":"2025-05","type":"returning","sessions":9614},{"ym":"2025-06","type":"new","sessions":16113},{"ym":"2025-06","type":"returning","sessions":9394},{"ym":"2025-07","type":"new","sessions":16147},{"ym":"2025-07","type":"returning","sessions":11280},{"ym":"2025-08","type":"new","sessions":17943},{"ym":"2025-08","type":"returning","sessions":11673},{"ym":"2025-09","type":"new","sessions":11450},{"ym":"2025-09","type":"returning","sessions":9174},{"ym":"2025-10","type":"new","sessions":17212},{"ym":"2025-10","type":"returning","sessions":11220},{"ym":"2025-11","type":"new","sessions":20732},{"ym":"2025-11","type":"returning","sessions":10060},{"ym":"2025-12","type":"new","sessions":14078},{"ym":"2025-12","type":"returning","sessions":8705},{"ym":"2026-01","type":"new","sessions":14996},{"ym":"2026-01","type":"returning","sessions":9174},{"ym":"2026-02","type":"new","sessions":38617},{"ym":"2026-02","type":"returning","sessions":12497},{"ym":"2026-03","type":"new","sessions":26898},{"ym":"2026-03","type":"returning","sessions":11978}];
-
-const LANDING = [{"page":"/","sessions":60255,"newUsers":44354,"bounceRate":43.9,"conversions":165081},{"page":"/air/login","sessions":10601,"newUsers":7529,"bounceRate":15.0,"conversions":1005},{"page":"/login","sessions":10081,"newUsers":4354,"bounceRate":9.2,"conversions":52309},{"page":"/pintop/login","sessions":6812,"newUsers":4085,"bounceRate":32.3,"conversions":2120},{"page":"/messenger","sessions":6334,"newUsers":493,"bounceRate":33.5,"conversions":321},{"page":"/home","sessions":5562,"newUsers":281,"bounceRate":37.1,"conversions":870},{"page":"/milx/login","sessions":5528,"newUsers":2164,"bounceRate":43.5,"conversions":111},{"page":"/pintop/register","sessions":4472,"newUsers":4112,"bounceRate":42.2,"conversions":1493},{"page":"/scalelab/login","sessions":2060,"newUsers":1419,"bounceRate":29.7,"conversions":156},{"page":"/services","sessions":1680,"newUsers":68,"bounceRate":32.7,"conversions":277},{"page":"/fastfamily","sessions":1276,"newUsers":998,"bounceRate":65.6,"conversions":735},{"page":"/profile","sessions":1138,"newUsers":94,"bounceRate":48.1,"conversions":501},{"page":"/accounts/youtube","sessions":1123,"newUsers":52,"bounceRate":34.5,"conversions":453},{"page":"/jb/nQChMb","sessions":965,"newUsers":722,"bounceRate":12.4,"conversions":3163}];
-
-const CHANNELS_MONTHLY_TOP5 = {};
-const TOP5_CH = ["Direct","Referral","Paid Social","Organic Social","Paid Search"];
-
-// ═══════════════════════════ COLORS ═══════════════════════════
-const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#0ea5e9','#a855f7'];
-const ALPHA = (c,a) => c + Math.round(a*255).toString(16).padStart(2,'0');
-
-// ═══════════════════════════ HELPERS ═══════════════════════════
-function fmtN(n){ if(!n||isNaN(n)) return '—'; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return Math.round(n).toLocaleString(); }
-function fmtPct(n){ return n!=null ? n.toFixed(1)+'%' : '—'; }
-function fmtMin(n){ if(!n||isNaN(n)) return '—'; const m=Math.floor(n); const s=Math.round((n-m)*60); return s>0 ? `${m}хв ${s}с` : `${m} хв`; }
-function brChip(r){ if(r<30) return `<span class="chip good">${r}%</span>`; if(r<55) return `<span class="chip warn">${r}%</span>`; return `<span class="chip bad">${r}%</span>`; }
-function maxOf(arr,k){ return Math.max(...arr.map(d=>d[k]||0)); }
-
-// ═══════════════════════════ MONTHLY TREND ═══════════════════════════
-(function(){
-  const m = MONTHLY;
-  const labels = m.map(d=>{ const [y,mo]=d.ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+' '+y.slice(2); });
-  new Chart(document.getElementById('chartMonthly'),{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {label:'Сесії',data:m.map(d=>d.sessions),backgroundColor:ALPHA('#6366f1',0.8),order:1,yAxisID:'y'},
-        {label:'Нові користувачі',data:m.map(d=>d.newUsers),backgroundColor:ALPHA('#10b981',0.7),order:2,yAxisID:'y'},
-        {label:'Конверсії (GA4)',data:m.map(d=>d.conversions),type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0.3,order:0,yAxisID:'y2'}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16,font:{size:12}}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},
-      scales:{
-        y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{callback:v=>fmtN(v)}},
-        y2:{position:'right',beginAtZero:true,grid:{display:false},ticks:{callback:v=>fmtN(v)}}
-      }
-    }
+// aggregators
+function agg(data, from, to){
+  const rows = data.filter(r => inRange(r.d, from, to));
+  const bySum = {s:0,u:0,nu:0,c:0};
+  const byCh = {};
+  const byDay = {};
+  rows.forEach(r=>{
+    bySum.s+=r.s; bySum.u+=r.u; bySum.nu+=r.nu; bySum.c+=r.c;
+    if(!byCh[r.ch]) byCh[r.ch]={s:0,u:0,nu:0,c:0};
+    byCh[r.ch].s+=r.s; byCh[r.ch].u+=r.u; byCh[r.ch].nu+=r.nu; byCh[r.ch].c+=r.c;
+    if(!byDay[r.d]) byDay[r.d]={s:0,u:0,nu:0,c:0};
+    byDay[r.d].s+=r.s; byDay[r.d].u+=r.u; byDay[r.d].nu+=r.nu; byDay[r.d].c+=r.c;
   });
-})();
+  return {sum:bySum, byCh, byDay};
+}
 
-// ═══════════════════════════ YoY ═══════════════════════════
-(function(){
-  new Chart(document.getElementById('chartYoy'),{
-    type:'bar',
-    data:{
-      labels:YOY.map(d=>d.month),
-      datasets:[
-        {label:'Кві\'24—Бер\'25',data:YOY.map(d=>d.lastYear),backgroundColor:ALPHA('#94a3b8',0.7)},
-        {label:'Кві\'25—Бер\'26',data:YOY.map(d=>d.thisYear),backgroundColor:ALPHA('#6366f1',0.85)}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},
-      scales:{
-        x:{grid:{display:false}},
-        y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}}
-      }
-    }
-  });
-})();
+function renderKPIs(cur, prv){
+  const deltaHtml = (c, p, asPct=false, invert=false)=>{
+    if(!p && !c) return '<div class="kpi-delta neutral">—</div>';
+    if(!p) return '<div class="kpi-delta up">↑ нове</div>';
+    const d = (c-p)/p*100;
+    const cls = (invert?-d:d) > 0.5 ? 'up' : (invert?-d:d) < -0.5 ? 'down' : 'neutral';
+    const arrow = d>0? '↑' : d<0? '↓' : '•';
+    return `<div class="kpi-delta ${cls}">${arrow} ${Math.abs(d).toFixed(1)}% vs попер.</div>`;
+  };
+  const html = `
+    <div class="kpi blue"><div class="kpi-label">Сесії</div><div class="kpi-val">${fmt(cur.sum.s)}</div>${deltaHtml(cur.sum.s, prv.sum.s)}</div>
+    <div class="kpi green"><div class="kpi-label">Активні користувачі</div><div class="kpi-val">${fmt(cur.sum.u)}</div>${deltaHtml(cur.sum.u, prv.sum.u)}</div>
+    <div class="kpi purple"><div class="kpi-label">Нові користувачі</div><div class="kpi-val">${fmt(cur.sum.nu)}</div>${deltaHtml(cur.sum.nu, prv.sum.nu)}</div>
+    <div class="kpi amber"><div class="kpi-label">Конверсії (GA4)</div><div class="kpi-val">${fmt(cur.sum.c)}</div>${deltaHtml(cur.sum.c, prv.sum.c)}</div>
+    <div class="kpi"><div class="kpi-label">Сесій / користувач</div><div class="kpi-val">${cur.sum.u? (cur.sum.s/cur.sum.u).toFixed(2) : '—'}</div><div class="kpi-sub">глибина залучення</div></div>
+    <div class="kpi red"><div class="kpi-label">% нових</div><div class="kpi-val">${cur.sum.u? pct(cur.sum.nu/cur.sum.u) : '—'}</div><div class="kpi-sub">first touch</div></div>
+  `;
+  $('kpiRow').innerHTML = html;
+}
 
-// ═══════════════════════════ CONVERSIONS ═══════════════════════════
-(function(){
-  const m = MONTHLY.filter(d=>d.conversions>0);
-  const labels = m.map(d=>{ const [y,mo]=d.ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  new Chart(document.getElementById('chartConversions'),{
-    type:'line',
-    data:{labels,datasets:[{label:'Конверсії GA4',data:m.map(d=>d.conversions),borderColor:'#f59e0b',backgroundColor:ALPHA('#f59e0b',0.15),fill:true,tension:0.3,borderWidth:2,pointRadius:3}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Конверсії: ${fmtN(c.parsed.y)}`}}},
-      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},x:{grid:{display:false}}}
-    }
-  });
-})();
+function renderInsights(cur, prv){
+  const items = [];
+  const paid = (cur.byCh['Paid Social']?.s||0) + (cur.byCh['Paid Search']?.s||0) + (cur.byCh['Paid Video']?.s||0);
+  const paidPrv = (prv.byCh['Paid Social']?.s||0) + (prv.byCh['Paid Search']?.s||0) + (prv.byCh['Paid Video']?.s||0);
+  if(paid>0){
+    const d = paidPrv? ((paid-paidPrv)/paidPrv*100).toFixed(0) : '—';
+    items.push(`<div class="insight-box"><b>💰 Paid трафік:</b> ${fmt(paid)} сесій (${paidPrv? (d>0?'+':'')+d+'%' : 'новий'} до попереднього періоду). Paid Social ${fmt(cur.byCh['Paid Social']?.s||0)} · Paid Search ${fmt(cur.byCh['Paid Search']?.s||0)}.</div>`);
+  }
+  if(cur.sum.nu/cur.sum.u > 0.6){
+    items.push(`<div class="insight-box"><b>🆕 Більшість аудиторії — нові:</b> ${pct(cur.sum.nu/cur.sum.u)} first-visit. Це ознака активного performance-запуску та холодного трафіку.</div>`);
+  }
+  const topCh = Object.entries(cur.byCh).sort((a,b)=>b[1].s-a[1].s)[0];
+  if(topCh){
+    items.push(`<div class="insight-box"><b>🏆 Топ канал:</b> ${topCh[0]} — ${fmt(topCh[1].s)} сесій (${pct(topCh[1].s/cur.sum.s)} всього трафіку), ${fmt(topCh[1].c)} конверсій.</div>`);
+  }
+  $('insights').innerHTML = items.join('');
+}
 
-// ═══════════════════════════ BOUNCE RATE ═══════════════════════════
-(function(){
-  const labels = MONTHLY.map(d=>{ const [y,mo]=d.ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  new Chart(document.getElementById('chartBounce'),{
-    type:'line',
-    data:{labels,datasets:[{label:'Bounce Rate %',data:MONTHLY.map(d=>d.bounceRate),borderColor:'#ef4444',backgroundColor:ALPHA('#ef4444',0.1),fill:true,tension:0.3,borderWidth:2,pointRadius:3}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`BR: ${c.parsed.y.toFixed(1)}%`}}},
-      scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}}}
-    }
-  });
-})();
+function renderTrend(cur){
+  const days = Object.keys(cur.byDay).sort();
+  const labels = days.map(d => d.slice(4,6)+'.'+d.slice(6,8));
+  const sData = days.map(d => cur.byDay[d].s);
+  const nuData = days.map(d => cur.byDay[d].nu);
+  const cData = days.map(d => cur.byDay[d].c);
+  $('trendRange').textContent = days.length>0 ? `${days[0].slice(0,4)}-${days[0].slice(4,6)}-${days[0].slice(6,8)} → ${days[days.length-1].slice(0,4)}-${days[days.length-1].slice(4,6)}-${days[days.length-1].slice(6,8)}` : '';
 
-// ═══════════════════════════ AVG DURATION ═══════════════════════════
-(function(){
-  const labels = MONTHLY.map(d=>{ const [y,mo]=d.ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  new Chart(document.getElementById('chartDuration'),{
-    type:'line',
-    data:{labels,datasets:[{label:'Avg Duration (хв)',data:MONTHLY.map(d=>d.avgDuration),borderColor:'#10b981',backgroundColor:ALPHA('#10b981',0.1),fill:true,tension:0.3,borderWidth:2,pointRadius:3}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Тривалість: ${c.parsed.y.toFixed(1)} хв`}}},
-      scales:{y:{beginAtZero:true,ticks:{callback:v=>v+' хв'}},x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ CHANNELS BAR ═══════════════════════════
-(function(){
-  new Chart(document.getElementById('chartChannelsBar'),{
-    type:'bar',
-    data:{
-      labels:CHANNELS90.map(d=>d.channel),
-      datasets:[
-        {label:'Сесії',data:CHANNELS90.map(d=>d.sessions),backgroundColor:COLORS.map(c=>c+'CC'),borderRadius:4}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Сесії: ${fmtN(c.parsed.x)}`}}},
-      scales:{x:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},y:{grid:{display:false}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ CHANNELS DOUGHNUT ═══════════════════════════
-(function(){
-  const top6 = CHANNELS90.slice(0,6);
-  const other = CHANNELS90.slice(6).reduce((a,b)=>a+b.sessions,0);
-  new Chart(document.getElementById('chartChannelsDoughnut'),{
-    type:'doughnut',
-    data:{
-      labels:[...top6.map(d=>d.channel),'Інші'],
-      datasets:[{data:[...top6.map(d=>d.sessions),other],backgroundColor:COLORS,borderColor:'#fff',borderWidth:2}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,cutout:'60%',
-      plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:10,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>{ const t=c.dataset.data.reduce((a,b)=>a+b,0); return `${c.label}: ${fmtN(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`; }}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ CHANNELS TABLE ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblChannels');
-  const maxS = maxOf(CHANNELS90,'sessions');
-  tbl.innerHTML = `<thead><tr>
-    <th>Канал</th><th>Сесії</th><th>Частка</th><th>Нові users</th><th>Bounce Rate</th><th>Avg Duration</th><th>Конверсії</th>
-  </tr></thead><tbody>${CHANNELS90.map(d=>{
-    const total = CHANNELS90.reduce((a,b)=>a+b.sessions,0);
-    const pct = (d.sessions/total*100).toFixed(1);
-    const barW = Math.round(d.sessions/maxS*80);
-    return `<tr>
-      <td><b>${d.channel}</b></td>
-      <td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px"></div>${fmtN(d.sessions)}</div></td>
-      <td>${pct}%</td>
-      <td>${fmtN(d.newUsers)}</td>
-      <td>${brChip(d.bounceRate)}</td>
-      <td>${fmtMin(d.avgDuration)}</td>
-      <td>${fmtN(d.conversions)}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ UTM TABLE ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblUtm');
-  const maxS = maxOf(UTM,'sessions');
-  tbl.innerHTML = `<thead><tr>
-    <th>Джерело / Medium</th><th>Сесії</th><th>Нові users</th><th>Bounce Rate</th><th>Avg Duration</th><th>Конверсії</th>
-  </tr></thead><tbody>${UTM.map(d=>{
-    const barW = Math.round(d.sessions/maxS*80);
-    return `<tr>
-      <td><b>${d.label}</b></td>
-      <td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px"></div>${fmtN(d.sessions)}</div></td>
-      <td>${fmtN(d.newUsers)}</td>
-      <td>${brChip(d.bounceRate)}</td>
-      <td>${fmtMin(d.avgDuration)}</td>
-      <td>${fmtN(d.conversions)}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ GEO CHART ═══════════════════════════
-(function(){
-  new Chart(document.getElementById('chartGeo'),{
-    type:'bar',
-    data:{
-      labels:GEO.map(d=>d.country),
-      datasets:[{label:'Сесії',data:GEO.map(d=>d.sessions),backgroundColor:COLORS.map(c=>c+'CC'),borderRadius:4}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Сесії: ${fmtN(c.parsed.x)}`}}},
-      scales:{x:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},y:{grid:{display:false},ticks:{font:{size:11}}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ GEO TABLE ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblGeo');
-  const total = GEO.reduce((a,b)=>a+b.sessions,0);
-  tbl.innerHTML = `<thead><tr><th>Країна</th><th>Сесії</th><th>%</th><th>Нові</th><th>BR</th></tr></thead><tbody>${GEO.map(d=>`<tr>
-    <td><b>${d.country}</b></td><td>${fmtN(d.sessions)}</td><td>${(d.sessions/total*100).toFixed(1)}%</td><td>${fmtN(d.newUsers)}</td><td>${brChip(d.bounceRate)}</td>
-  </tr>`).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ DEVICES DOUGHNUT ═══════════════════════════
-(function(){
-  new Chart(document.getElementById('chartDevices'),{
-    type:'doughnut',
-    data:{
-      labels:DEVICE_SPLIT.map(d=>d.device),
-      datasets:[{data:DEVICE_SPLIT.map(d=>d.sessions),backgroundColor:['#6366f1','#10b981','#f59e0b','#ef4444'],borderColor:'#fff',borderWidth:2}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,cutout:'60%',
-      plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:8,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>{ const t=c.dataset.data.reduce((a,b)=>a+b,0); return `${c.label}: ${fmtN(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`; }}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ HOURLY ═══════════════════════════
-(function(){
-  new Chart(document.getElementById('chartHourly'),{
-    type:'bar',
-    data:{
-      labels:HOURLY.map(d=>d.hour+'г'),
-      datasets:[{label:'Сесії',data:HOURLY.map(d=>d.sessions),backgroundColor:HOURLY.map(d=>d.sessions>=3000?'#6366f1CC':'#94a3b880'),borderRadius:3}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Сесії: ${c.parsed.y}`}}},
-      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},x:{grid:{display:false},ticks:{font:{size:9}}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ DAY OF WEEK ═══════════════════════════
-(function(){
-  const max=maxOf(DOW,'sessions');
-  new Chart(document.getElementById('chartDayOfWeek'),{
-    type:'bar',
-    data:{
-      labels:DOW.map(d=>d.day),
-      datasets:[{label:'Сесії',data:DOW.map(d=>d.sessions),backgroundColor:DOW.map(d=>d.sessions===max?'#6366f1':'#6366f177'),borderRadius:4}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Сесії: ${c.parsed.y}`}}},
-      scales:{y:{beginAtZero:true},x:{grid:{display:false}}}
-    }
-  });
-})();
-
-// ═══════════════════════════ NEW vs RETURNING ═══════════════════════════
-(function(){
-  const months=[...new Set(NVR_RAW.map(d=>d.ym))].sort();
-  const labels=months.map(ym=>{ const [y,mo]=ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  const newSessions=months.map(ym=>{ const r=NVR_RAW.find(d=>d.ym===ym&&d.type==='new'); return r?r.sessions:0; });
-  const retSessions=months.map(ym=>{ const r=NVR_RAW.find(d=>d.ym===ym&&d.type==='returning'); return r?r.sessions:0; });
-  new Chart(document.getElementById('chartNvr'),{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {label:'Нові',data:newSessions,backgroundColor:ALPHA('#6366f1',0.8),stack:'s'},
-        {label:'Повернені',data:retSessions,backgroundColor:ALPHA('#10b981',0.8),stack:'s'}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},
-      scales:{
-        y:{beginAtZero:true,stacked:true,ticks:{callback:v=>fmtN(v)}},
-        x:{stacked:true,grid:{display:false},ticks:{maxRotation:45,font:{size:9}}}
-      }
-    }
-  });
-})();
-
-// ═══════════════════════════ EVENTS TABLE ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblEvents');
-  const maxC = maxOf(EVENTS,'count');
-  tbl.innerHTML = `<thead><tr><th>Подія</th><th>Кількість</th><th>Унікальних users</th><th>Конверсія</th></tr></thead><tbody>${EVENTS.map(d=>{
-    const barW=Math.round(d.count/maxC*70);
-    const isConv=d.conversions>0;
-    return `<tr>
-      <td><b>${d.event}</b>${isConv?' <span class="chip good">conv</span>':''}</td>
-      <td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px;background:${isConv?'#f59e0b':'#6366f1'}"></div>${fmtN(d.count)}</div></td>
-      <td>${fmtN(d.users)}</td>
-      <td>${isConv?fmtN(d.conversions):'—'}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ LANDING PAGES ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblLanding');
-  const maxS = maxOf(LANDING,'sessions');
-  tbl.innerHTML = `<thead><tr><th>Сторінка</th><th>Сесії</th><th>Нові users</th><th>Bounce Rate</th><th>Конверсії</th></tr></thead><tbody>${LANDING.map(d=>{
-    const barW=Math.round(d.sessions/maxS*80);
-    return `<tr>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;" title="${d.page}"><b>${d.page}</b></td>
-      <td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px"></div>${fmtN(d.sessions)}</div></td>
-      <td>${fmtN(d.newUsers)}</td>
-      <td>${brChip(d.bounceRate)}</td>
-      <td>${fmtN(d.conversions)}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ WEEKLY TREND ═══════════════════════════
-(function(){
-  // Build weekly data from monthly (approximation using daily proportions stored in weekly)
-  // Use NVR monthly as proxy for weekly trend shape
-  const allMonths = MONTHLY.map((d,i)=>[d.ym, d.sessions]);
-  // Create a simplified weekly view from monthly data
-  const labels = MONTHLY.map(d=>{ const [y,mo]=d.ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  new Chart(document.getElementById('chartWeekly'),{
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        {label:'Сесії (місяць)',data:MONTHLY.map(d=>d.sessions),borderColor:'#6366f1',backgroundColor:ALPHA('#6366f1',0.1),fill:true,tension:0.3,borderWidth:2,pointRadius:4,pointHoverRadius:6},
-        {label:'Нові users',data:MONTHLY.map(d=>d.newUsers),borderColor:'#10b981',borderDash:[5,3],backgroundColor:'transparent',tension:0.3,borderWidth:1.5,pointRadius:2}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:12}}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},
-      scales:{
-        y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},
-        x:{grid:{display:false}}
-      }
-    }
-  });
-})();
-
-// ═══════════════════════════ DEVICE DETAIL TABLE ═══════════════════════════
-(function(){
-  const tbl = document.getElementById('tblDeviceDetail');
-  const maxS = maxOf(DEVICE_DETAIL,'sessions');
-  tbl.innerHTML = `<thead><tr><th>Пристрій</th><th>ОС</th><th>Сесії</th><th>BR</th></tr></thead><tbody>${DEVICE_DETAIL.map(d=>{
-    const barW=Math.round(d.sessions/maxS*60);
-    return `<tr>
-      <td>${d.device}</td><td>${d.os}</td>
-      <td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px"></div>${fmtN(d.sessions)}</div></td>
-      <td>${brChip(d.bounceRate)}</td>
-    </tr>`;
-  }).join('')}</tbody>`;
-})();
-
-// ═══════════════════════════ CHANNELS MONTHLY TREND (top 5) ═══════════════════════════
-(function(){
-  // Build channelsMonthly from our top channels data
-  // We'll use the monthly sessions and estimate channel split based on 90d ratios
-  // This is an approximation - real channelsMonthly data is too large to embed
-  const months = MONTHLY.map(d=>d.ym).slice(0,-1); // exclude April 2026 partial
-  const topChannels = ['Direct','Referral','Paid Social','Organic Search','Organic Social'];
-  const ch90Total = CHANNELS90.reduce((a,b)=>a+b.sessions,0);
-  const chRatios = {};
-  CHANNELS90.forEach(d=>{ chRatios[d.channel]=d.sessions/ch90Total; });
-
-  const labels = months.map(ym=>{ const [y,mo]=ym.split('-'); const ms=['','Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру']; return ms[+mo]+"'"+y.slice(2); });
-  const chColors=['#6366f1','#10b981','#ef4444','#3b82f6','#f59e0b'];
-
-  const datasets = topChannels.map((ch,i)=>{
-    const ratio = chRatios[ch]||0;
-    const data = months.map((ym,mi)=>{
-      const m = MONTHLY[mi];
-      return Math.round(m.sessions * ratio);
-    });
-    return {
-      label:ch,
-      data,
-      borderColor:chColors[i],
-      backgroundColor:'transparent',
-      borderWidth:2,
-      tension:0.3,
-      pointRadius:2,
-      fill:false
-    };
-  });
-
-  new Chart(document.getElementById('chartChannelsTrend'),{
-    type:'line',
-    data:{labels,datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},
-      scales:{
-        y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)}},
-        x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}}
-      }
-    }
-  });
-})();
-
-// ═══════════════════════════ IT SECTION ═══════════════════════════
-
-// Signup Funnel Chart
-(function(){
-  const funnel = [
-    {step:'Відвідування сайту',value:143408,color:'#6366f1'},
-    {step:'Клік Sign Up',value:2367+788,color:'#818cf8'},
-    {step:'Policy Done',value:2151,color:'#a5b4fc'},
-    {step:'About Creator',value:1735,color:'#10b981'},
-    {step:'Signup Done',value:1376,color:'#059669'},
-    {step:'Google Signup',value:1309,color:'#047857'}
-  ];
-  new Chart(document.getElementById('chartSignupFunnel'),{
-    type:'bar',
-    data:{
-      labels:funnel.map(d=>d.step),
-      datasets:[{
-        data:funnel.map(d=>d.value),
-        backgroundColor:funnel.map(d=>d.color),
-        borderRadius:4
-      }]
-    },
-    options:{
-      indexAxis:'y',
+  if(charts.trend) charts.trend.destroy();
+  charts.trend = new Chart($('trendChart'), {
+    type: 'line',
+    data: { labels, datasets: [
+      {label:'Сесії', data:sData, borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.1)', tension:.3, fill:true, yAxisID:'y'},
+      {label:'Нові користувачі', data:nuData, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.08)', tension:.3, fill:false, yAxisID:'y'},
+      {label:'Конверсії', data:cData, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', tension:.3, fill:false, yAxisID:'y1'}
+    ]},
+    options: {
       responsive:true, maintainAspectRatio:false,
-      scales:{x:{ticks:{callback:v=>fmtN(v)},grid:{color:'#f1f5f9'}}},
-      plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{
-          label:function(c){
-            const val=c.parsed.x;
-            const pct=((val/143408)*100).toFixed(2);
-            return `${fmtN(val)} (${pct}% від трафіку)`;
-          }
-        }}
+      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
+      scales:{
+        x:{ticks:{color:'#8b93b0',maxTicksLimit:15},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Sessions / Users',color:'#8b93b0'}},
+        y1:{position:'right',ticks:{color:'#f59e0b'},grid:{drawOnChartArea:false},title:{display:true,text:'Conversions',color:'#f59e0b'}}
       }
     }
   });
-})();
+}
 
-// Devices IT Table
-(function(){
-  const data = [
-    {device:'Desktop',os:'Windows',sessions:19063,br:'27.9%',share:'49.3%'},
-    {device:'Mobile',os:'Android',sessions:8084,br:'31.4%',share:'20.9%'},
-    {device:'Mobile',os:'iOS',sessions:6839,br:'33.5%',share:'17.7%'},
-    {device:'Desktop',os:'macOS',sessions:4583,br:'31.0%',share:'11.9%'},
-    {device:'Desktop',os:'Linux',sessions:454,br:'21.1%',share:'1.2%'},
-    {device:'Tablet',os:'Android',sessions:241,br:'40.7%',share:'0.6%'},
-    {device:'Tablet',os:'iOS',sessions:37,br:'18.9%',share:'0.1%'}
-  ];
-  const el=document.getElementById('tblDevicesIT');
-  el.innerHTML='<thead><tr><th>Пристрій</th><th>ОС</th><th>Сесії</th><th>BR</th><th>Частка</th></tr></thead><tbody>'+
-    data.map(d=>`<tr><td>${d.device}</td><td><b>${d.os}</b></td><td>${fmtN(d.sessions)}</td><td>${d.br}</td><td>${d.share}</td></tr>`).join('')+'</tbody>';
-})();
+function renderChannels(cur){
+  const entries = Object.entries(cur.byCh).sort((a,b)=>b[1].s-a[1].s);
+  const labels = entries.map(e=>e[0]);
+  const vals = entries.map(e=>e[1].s);
+  if(charts.channel) charts.channel.destroy();
+  charts.channel = new Chart($('channelChart'), {
+    type:'doughnut',
+    data: {labels, datasets:[{data:vals, backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
+    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{color:'#e8ecf8',font:{size:11},padding:8}}}}
+  });
+  $('channelTable').innerHTML = entries.map(e=>`
+    <tr><td>${e[0]}</td><td class="num">${fmt(e[1].s)}</td><td class="num">${fmt(e[1].nu)}</td><td class="num">${fmt(e[1].c)}</td></tr>
+  `).join('');
+}
 
-// Problem Pages Table
-(function(){
-  const pages = [
-    {page:'/',sessions:60721,br:'44.2%',avg:'2.0 хв',issue:'Головна — високий BR для трафіку з реклами'},
-    {page:'(not set)',sessions:5473,br:'86.2%',avg:'1.5 хв',issue:'🔴 Битий URL або редірект'},
-    {page:'/milx/login',sessions:5733,br:'47.4%',avg:'2.7 хв',issue:'Зайві редіректи в auth flow'},
-    {page:'/pintop/register',sessions:4550,br:'41.6%',avg:'1.9 хв',issue:'Форма реєстрації — drop-off'},
-    {page:'/fastfamily',sessions:1206,br:'67.2%',avg:'0.7 хв',issue:'Лендінг не залучає'},
-    {page:'/pintop/login',sessions:6818,br:'35.7%',avg:'1.9 хв',issue:'Перевірити redirect після login'}
-  ];
-  const el=document.getElementById('tblProblemPages');
-  el.innerHTML='<thead><tr><th>Сторінка</th><th>Сесії</th><th>BR</th><th>Avg</th><th>Проблема</th></tr></thead><tbody>'+
-    pages.map(d=>`<tr><td><code>${d.page}</code></td><td>${fmtN(d.sessions)}</td><td style="color:${parseFloat(d.br)>50?'#ef4444':parseFloat(d.br)>40?'#f59e0b':'#64748b'};font-weight:700">${d.br}</td><td>${d.avg}</td><td style="font-size:11px">${d.issue}</td></tr>`).join('')+'</tbody>';
+function renderPaidCampaigns(){
+  const tkTotal = D.tiktok.reduce((a,r)=>({spend:a.spend+r.spend,clk:a.clk+r.clk,conv:a.conv+r.conv,imp:a.imp+r.imp}),{spend:0,clk:0,conv:0,imp:0});
+  const gadsTotal = D.gads.reduce((a,r)=>({spend:a.spend+r.spend,clk:a.clk+r.clk,conv:a.conv+r.conv}),{spend:0,clk:0,conv:0});
+  const metaTotal = D.meta.reduce((a,r)=>({s:a.s+r.s,nu:a.nu+r.nu,c:a.c+r.c}),{s:0,nu:0,c:0});
+
+  const html = `
+    <div class="paid-card tiktok">
+      <div class="pc-head"><div class="pc-logo">🎵</div><div><div class="pc-name">TikTok Ads</div><div class="pc-sub">Relaunch 18.04 · $ USD</div></div></div>
+      <div class="pc-metrics">
+        <div class="pc-metric"><div class="l">Витрачено</div><div class="v">$${tkTotal.spend.toFixed(2)}</div></div>
+        <div class="pc-metric"><div class="l">Кліків</div><div class="v">${fmt(tkTotal.clk)}</div></div>
+        <div class="pc-metric"><div class="l">Конверсії</div><div class="v">${tkTotal.conv}</div></div>
+        <div class="pc-metric"><div class="l">CPA</div><div class="v">${tkTotal.conv? '$'+(tkTotal.spend/tkTotal.conv).toFixed(2) : '—'}</div></div>
+      </div>
+      ${D.tiktok.sort((a,b)=>b.spend-a.spend).slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>$${c.spend.toFixed(2)}</span></div>`).join('')}
+    </div>
+    <div class="paid-card google">
+      <div class="pc-head"><div class="pc-logo">🔍</div><div><div class="pc-name">Google Ads</div><div class="pc-sub">Search · AED</div></div></div>
+      <div class="pc-metrics">
+        <div class="pc-metric"><div class="l">Витрачено</div><div class="v">AED ${gadsTotal.spend.toFixed(0)}</div></div>
+        <div class="pc-metric"><div class="l">Кліків</div><div class="v">${fmt(gadsTotal.clk)}</div></div>
+        <div class="pc-metric"><div class="l">Конверсії</div><div class="v">${gadsTotal.conv.toFixed(0)}</div></div>
+        <div class="pc-metric"><div class="l">CPA</div><div class="v">${gadsTotal.conv? 'AED '+(gadsTotal.spend/gadsTotal.conv).toFixed(2) : '—'}</div></div>
+      </div>
+      ${D.gads.sort((a,b)=>b.spend-a.spend).slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>AED ${c.spend.toFixed(0)}</span></div>`).join('')}
+    </div>
+    <div class="paid-card meta">
+      <div class="pc-head"><div class="pc-logo">Ⓜ</div><div><div class="pc-name">Meta Ads</div><div class="pc-sub">Launch 19-20.04</div></div></div>
+      <div class="pc-metrics">
+        <div class="pc-metric"><div class="l">Сесії GA4</div><div class="v">${fmt(metaTotal.s)}</div></div>
+        <div class="pc-metric"><div class="l">Нових</div><div class="v">${fmt(metaTotal.nu)}</div></div>
+        <div class="pc-metric"><div class="l">Конверсії GA4</div><div class="v">${fmt(metaTotal.c)}</div></div>
+        <div class="pc-metric"><div class="l">Статус</div><div class="v" style="font-size:13px;color:#fbbf24;">Перший тиждень</div></div>
+      </div>
+      ${D.meta.slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>${fmt(c.s)} сес</span></div>`).join('')}
+    </div>
+  `;
+  $('paidCards').innerHTML = html;
+}
+
+function renderAudience(tab){
+  const ageData = tab==='week'? D.age_week : D.age_month;
+  const genderData = tab==='week'? D.gender_week : D.gender_month;
+  const cityData = tab==='week'? D.city_week : D.city_month;
+
+  // Age chart
+  const ageFiltered = ageData.filter(r=>r.age!=='unknown');
+  if(charts.age) charts.age.destroy();
+  charts.age = new Chart($('ageChart'), {
+    type:'doughnut',
+    data:{labels:ageFiltered.map(r=>r.age), datasets:[{data:ageFiltered.map(r=>r.s), backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:11}}}}}
+  });
+
+  // Gender
+  const gFiltered = genderData.filter(r=>r.g!=='unknown');
+  if(charts.gender) charts.gender.destroy();
+  charts.gender = new Chart($('genderChart'), {
+    type:'doughnut',
+    data:{labels:gFiltered.map(r=>r.g==='male'?'Чоловіки':r.g==='female'?'Жінки':r.g), datasets:[{data:gFiltered.map(r=>r.s), backgroundColor:['#3b82f6','#ec4899','#8b93b0'], borderColor:'#121830', borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:11}}}}}
+  });
+
+  // Language (only week for now — month не витягнули interests, тільки language)
+  const langData = D.lang_week;
+  if(charts.lang) charts.lang.destroy();
+  charts.lang = new Chart($('langChart'), {
+    type:'doughnut',
+    data:{labels:langData.map(r=>r.l), datasets:[{data:langData.map(r=>r.s), backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:10}}}}}
+  });
+
+  // Cities (top 15, filter out not-set)
+  const cityFiltered = cityData.filter(r=>r.c && r.c!=='(not set)').slice(0,15);
+  if(charts.city) charts.city.destroy();
+  charts.city = new Chart($('cityChart'), {
+    type:'bar',
+    data:{labels:cityFiltered.map(r=>r.c), datasets:[
+      {label:'Сесії', data:cityFiltered.map(r=>r.s), backgroundColor:'#6366f1'},
+      {label:'Нові', data:cityFiltered.map(r=>r.nu), backgroundColor:'#10b981'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
+      scales:{x:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8b93b0'},grid:{display:false}}}}
+  });
+}
+
+function renderBehavior(){
+  // Engagement table (top 12 paid + referral)
+  const top = D.engage.filter(r=>r.s>=50).slice(0,12);
+  $('engageTable').innerHTML = top.map(r=>{
+    const srcLabel = r.src==='(direct)'? 'Direct' : `${r.src} / ${r.med}`;
+    const erClass = r.er>0.5? 'green' : r.er>0.25? 'amber' : 'red';
+    return `<tr><td>${srcLabel}</td><td class="num">${fmt(r.s)}</td><td class="num"><span class="badge ${erClass}">${(r.er*100).toFixed(1)}%</span></td><td class="num">${dur(r.dur)}</td><td class="num">${r.pv.toFixed(1)}</td></tr>`;
+  }).join('');
+
+  // Device donut (week sum)
+  const devSum = {};
+  D.device_channel.forEach(r=>{devSum[r.dev]=(devSum[r.dev]||0)+r.s;});
+  const devEntries = Object.entries(devSum);
+  if(charts.device) charts.device.destroy();
+  charts.device = new Chart($('deviceChart'), {
+    type:'doughnut',
+    data:{labels:devEntries.map(e=>e[0]==='mobile'?'📱 Mobile':e[0]==='desktop'?'💻 Desktop':'📱 Tablet'), datasets:[{data:devEntries.map(e=>e[1]), backgroundColor:['#6366f1','#10b981','#f59e0b'], borderColor:'#121830', borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:12}}}}}
+  });
+
+  // Pages table
+  $('pagesTable').innerHTML = D.pages.slice(0,20).map(p=>`
+    <tr><td style="font-family:ui-monospace,monospace;font-size:12px;">${p.p||'/'}</td><td class="num">${fmt(p.pv)}</td><td class="num">${fmt(p.u)}</td><td class="num">${dur(p.dur)}</td></tr>
+  `).join('');
+}
+
+function renderMonthly(){
+  const sorted = D.monthly.sort((a,b)=>a.m.localeCompare(b.m));
+  const labels = sorted.map(r=>r.m.slice(0,4)+'-'+r.m.slice(4,6));
+  if(charts.monthly) charts.monthly.destroy();
+  charts.monthly = new Chart($('monthlyChart'), {
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Сесії', data:sorted.map(r=>r.s), backgroundColor:'#6366f1'},
+      {label:'Нові користувачі', data:sorted.map(r=>r.nu), backgroundColor:'#10b981'},
+      {label:'Конверсії', data:sorted.map(r=>r.c), type:'line', borderColor:'#f59e0b', backgroundColor:'#f59e0b', yAxisID:'y1', tension:.3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
+      scales:{
+        x:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},
+        y1:{position:'right',ticks:{color:'#f59e0b'},grid:{drawOnChartArea:false}}
+      }}
+  });
+}
+
+function render(){
+  const cur = agg(D.daily365, currentFrom, currentTo);
+  const prv = agg(D.daily365, currentPrevFrom, currentPrevTo);
+  renderKPIs(cur, prv);
+  renderInsights(cur, prv);
+  renderTrend(cur);
+  renderChannels(cur);
+}
+
+// Event listeners
+document.querySelectorAll('.period-switch button').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('.period-switch button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = btn.dataset.period;
+    if(p==='custom'){
+      $('customRange').style.display='flex';
+      const to = today.toISOString().slice(0,10);
+      const from = new Date(today); from.setDate(from.getDate()-30);
+      $('dateFrom').value = from.toISOString().slice(0,10);
+      $('dateTo').value = to;
+    } else {
+      $('customRange').style.display='none';
+      setPeriod(+p);
+    }
+  };
+});
+$('dateFrom').onchange = $('dateTo').onchange = ()=>{
+  if($('dateFrom').value && $('dateTo').value){
+    setCustom($('dateFrom').value, $('dateTo').value);
+  }
+};
+
+document.querySelectorAll('#audTab button').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('#audTab button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAudience(btn.dataset.tab);
+  };
+});
+
+// Initial render
+setPeriod(7);
+renderPaidCampaigns();
+renderAudience('week');
+renderBehavior();
+renderMonthly();
 })();
 </script>
 </body>
