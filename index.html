@@ -3,541 +3,635 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>pin.top — Marketing Dashboard</title>
+<meta name="robots" content="noindex,nofollow">
+<title>pin.top · Marketing Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<style>
-:root{--bg:#0b1020;--panel:#121830;--card:#1a2040;--border:#2a3155;--text:#e8ecf8;--muted:#8b93b0;--accent:#6366f1;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--pink:#ec4899;--purple:#8b5cf6;--teal:#14b8a6;--orange:#f97316;--lime:#84cc16;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(180deg,#0b1020 0%,#141a38 100%);color:var(--text);font-size:14px;min-height:100vh;}
-.wrap{max-width:1480px;margin:0 auto;padding:20px;}
-.hdr{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.hdr-left h1{font-size:22px;font-weight:700;letter-spacing:-0.3px;background:linear-gradient(90deg,#818cf8,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hdr-left .sub{font-size:12px;color:var(--muted);margin-top:4px;}
-.period-switch{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:10px;border:1px solid var(--border);}
-.period-switch button{background:none;border:none;color:var(--muted);padding:8px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;}
-.period-switch button:hover{color:var(--text);}
-.period-switch button.active{background:var(--accent);color:#fff;}
-.custom-range{display:flex;gap:8px;align-items:center;background:var(--card);padding:6px 12px;border-radius:10px;border:1px solid var(--border);font-size:12px;color:var(--muted);}
-.custom-range input{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
-.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;}
-.kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent);}
-.kpi.green::before{background:var(--green);}
-.kpi.amber::before{background:var(--amber);}
-.kpi.red::before{background:var(--red);}
-.kpi.blue::before{background:var(--blue);}
-.kpi.purple::before{background:var(--purple);}
-.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
-.kpi-val{font-size:26px;font-weight:800;line-height:1;}
-.kpi-delta{font-size:12px;margin-top:8px;font-weight:600;display:flex;align-items:center;gap:4px;}
-.kpi-delta.up{color:var(--green);}
-.kpi-delta.down{color:var(--red);}
-.kpi-delta.neutral{color:var(--muted);}
-.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
-.section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:20px;}
-.section h2{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.section h2 .ic{font-size:18px;}
-.section h2 .tag{margin-left:auto;font-size:11px;font-weight:500;color:var(--muted);padding:3px 8px;background:var(--card);border-radius:6px;}
-.grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
-.chart-box{position:relative;height:300px;}
-.chart-box.sm{height:220px;}
-.chart-box.lg{height:360px;}
-.channel-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
-.channel-card .ch-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;}
-.channel-card .ch-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
-.channel-card .ch-dot{width:10px;height:10px;border-radius:50%;}
-.channel-card .ch-pct{font-size:11px;color:var(--muted);}
-.channel-card .ch-val{font-size:20px;font-weight:800;}
-.channel-card .ch-row{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--muted);}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;padding:10px 8px;background:var(--card);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600;border-bottom:1px solid var(--border);}
-td{padding:10px 8px;border-bottom:1px solid var(--border);}
-tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(99,102,241,0.06);}
-.num{text-align:right;font-variant-numeric:tabular-nums;}
-.badge{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;display:inline-block;}
-.badge.green{background:rgba(16,185,129,.15);color:#34d399;}
-.badge.red{background:rgba(239,68,68,.15);color:#f87171;}
-.badge.blue{background:rgba(59,130,246,.15);color:#60a5fa;}
-.badge.amber{background:rgba(245,158,11,.15);color:#fbbf24;}
-.badge.purple{background:rgba(139,92,246,.15);color:#a78bfa;}
-.insight-box{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(16,185,129,.08));border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:14px 16px;margin-bottom:10px;font-size:13px;line-height:1.55;}
-.insight-box b{color:#a5b4fc;}
-.channel-table td{font-size:12px;}
-.paid-card{background:linear-gradient(135deg,var(--card) 0%,rgba(99,102,241,.05) 100%);border:1px solid var(--border);border-radius:12px;padding:18px;}
-.paid-card .pc-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.paid-card .pc-logo{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
-.paid-card.tiktok .pc-logo{background:linear-gradient(135deg,#ff0050,#00f2ea);}
-.paid-card.google .pc-logo{background:linear-gradient(135deg,#4285f4,#34a853);}
-.paid-card.meta .pc-logo{background:linear-gradient(135deg,#0866ff,#1877f2);}
-.paid-card .pc-name{font-size:14px;font-weight:700;}
-.paid-card .pc-sub{font-size:11px;color:var(--muted);}
-.pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.pc-metric{background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px;}
-.pc-metric .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
-.pc-metric .v{font-size:17px;font-weight:700;margin-top:2px;}
-.campaign-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px;}
-.campaign-row:last-child{border-bottom:none;}
-.campaign-row .cn{color:var(--muted);flex:1;margin-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.footer{margin-top:30px;padding:18px;text-align:center;color:var(--muted);font-size:11px;}
-.footer a{color:var(--accent);text-decoration:none;}
-.tab-switch{display:flex;gap:4px;margin-bottom:14px;}
-.tab-switch button{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;}
-.tab-switch button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.scroll-h{max-height:340px;overflow-y:auto;}
-.scroll-h::-webkit-scrollbar{width:6px;} .scroll-h::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-</style>
 </head>
 <body>
-<div class="wrap">
 
-<div class="hdr">
-  <div class="hdr-left">
-    <h1>📊 pin.top · Marketing Dashboard</h1>
-    <div class="sub">GA4 Property 358528411 · TikTok · Google Ads · Meta · <span id="dataUpdated"></span></div>
+<!-- ============================================================
+     JS-GATE
+     ============================================================ -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">pin<span>.top</span> · Marketing Intelligence</div>
+    <div class="gate-sub">Внутрішній дашборд. Введіть пароль для доступу.</div>
+    <label class="gate-label" for="gatePass">Пароль</label>
+    <input type="password" id="gatePass" class="gate-input" autocomplete="off" autofocus>
+    <button class="gate-btn" id="gateBtn">Розблокувати</button>
+    <div class="gate-err" id="gateErr">Невірний пароль</div>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-    <div class="period-switch">
-      <button data-period="7" class="active">7 днів</button>
-      <button data-period="30">30 днів</button>
-      <button data-period="90">90 днів</button>
-      <button data-period="365">Рік</button>
+</div>
+
+<!-- ============================================================
+     APP (hidden until unlocked)
+     ============================================================ -->
+<div id="app" style="display:none;">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-logo">p</div>
+        <div>
+          <div class="brand-title">pin<em>.top</em> Marketing Intelligence</div>
+          <div class="brand-sub" id="brandSub">GA4 · Google Ads · TikTok · Meta · GSC</div>
+        </div>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="overview"><span class="tab-ic">▦</span>Overview</button>
+        <button class="tab" data-tab="paid"><span class="tab-ic">$</span>Paid</button>
+        <button class="tab" data-tab="gads"><span class="tab-ic">G</span>Google Ads</button>
+        <button class="tab" data-tab="tiktok"><span class="tab-ic">♪</span>TikTok</button>
+        <button class="tab" data-tab="meta"><span class="tab-ic">M</span>Meta</button>
+        <button class="tab" data-tab="utm"><span class="tab-ic">⇒</span>UTM &amp; Attr.</button>
+        <button class="tab" data-tab="organic"><span class="tab-ic">⌕</span>Organic &amp; GSC</button>
+        <button class="tab" data-tab="audience"><span class="tab-ic">◯</span>Audience</button>
+        <button class="tab" data-tab="insights"><span class="tab-ic">★</span>Insights</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="filter-group" id="periodGroup">
+      <button data-period="7">7d</button>
+      <button data-period="30" class="active">30d</button>
+      <button data-period="90">90d</button>
+      <button data-period="qtd">QTD</button>
+      <button data-period="ytd">YTD</button>
       <button data-period="custom">Custom</button>
     </div>
-    <div class="custom-range" id="customRange" style="display:none;">
+    <div class="filter-date" id="customRange" style="display:none;">
       <span>від</span>
       <input type="date" id="dateFrom">
       <span>до</span>
       <input type="date" id="dateTo">
     </div>
-  </div>
-</div>
-
-<!-- KPI ROW -->
-<div class="kpi-row" id="kpiRow"></div>
-
-<!-- INSIGHTS -->
-<div class="section">
-  <h2><span class="ic">💡</span>Що сталося за обраний період</h2>
-  <div id="insights"></div>
-</div>
-
-<!-- TREND CHART -->
-<div class="section">
-  <h2><span class="ic">📈</span>Динаміка трафіку <span class="tag" id="trendRange"></span></h2>
-  <div class="chart-box lg"><canvas id="trendChart"></canvas></div>
-</div>
-
-<!-- CHANNELS -->
-<div class="section">
-  <h2><span class="ic">🌐</span>Канали трафіку</h2>
-  <div class="grid2">
-    <div class="chart-box"><canvas id="channelChart"></canvas></div>
-    <div>
-      <table class="channel-table">
-        <thead><tr><th>Канал</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Конв.</th></tr></thead>
-        <tbody id="channelTable"></tbody>
-      </table>
+    <div class="filter-chip">
+      <span class="muted">Канал:</span>
+      <select id="chFilter">
+        <option value="">Всі канали</option>
+      </select>
     </div>
-  </div>
-</div>
-
-<!-- PAID CAMPAIGNS -->
-<div class="section">
-  <h2><span class="ic">🚀</span>Платні запуски (поточний тиждень)</h2>
-  <div class="grid3" id="paidCards"></div>
-</div>
-
-<!-- AUDIENCE -->
-<div class="section">
-  <h2><span class="ic">👥</span>Хто реєструвався (тиждень)</h2>
-  <div class="tab-switch" id="audTab">
-    <button data-tab="week" class="active">Тиждень</button>
-    <button data-tab="month">Місяць</button>
-  </div>
-  <div class="grid3">
-    <div>
-      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Вік</h3>
-      <div class="chart-box sm"><canvas id="ageChart"></canvas></div>
+    <div class="filter-chip">
+      <span class="muted">GA4 scope:</span>
+      <select id="scopeFilter">
+        <option value="pintop">pin.top тільки</option>
+        <option value="all">Вся AIR Media-Tech</option>
+      </select>
     </div>
-    <div>
-      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Стать</h3>
-      <div class="chart-box sm"><canvas id="genderChart"></canvas></div>
-    </div>
-    <div>
-      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Мова</h3>
-      <div class="chart-box sm"><canvas id="langChart"></canvas></div>
-    </div>
+    <div class="filter-period-indicator" id="periodIndicator"></div>
   </div>
-  <h3 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px;">Топ міст</h3>
-  <div class="chart-box"><canvas id="cityChart"></canvas></div>
-</div>
 
-<!-- BEHAVIOR -->
-<div class="section">
-  <h2><span class="ic">🧭</span>Поведінка аудиторії</h2>
-  <div class="grid2">
-    <div>
-      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Engagement по каналах</h3>
-      <table>
-        <thead><tr><th>Джерело</th><th class="num">Сесії</th><th class="num">Engagement</th><th class="num">Час</th><th class="num">PV/Sess</th></tr></thead>
-        <tbody id="engageTable"></tbody>
-      </table>
+  <main class="main">
+
+    <!-- ============================================================
+         OVERVIEW
+         ============================================================ -->
+    <section class="tab-panel active" data-panel="overview">
+      <div class="page-head">
+        <h1 class="page-title">Executive <span>Overview</span></h1>
+        <div class="page-subtitle" id="overviewSubtitle"></div>
+      </div>
+
+      <div class="grid grid-4 section" id="kpiOverview"></div>
+
+      <div class="insight-row" id="overviewInsights"></div>
+
+      <div class="grid grid-2-1 section">
+        <div class="card">
+          <div class="card-title">Динаміка трафіку та конверсій
+            <span class="hint" id="trendRange"></span>
+          </div>
+          <div class="chart-box lg"><canvas id="overviewTrend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Канали трафіку</div>
+          <div class="chart-box"><canvas id="overviewChannels"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Платні канали — витрати ($USD)
+            <span class="hint">по днях</span>
+          </div>
+          <div class="chart-box"><canvas id="overviewPaidSpend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Топ-10 джерел трафіку
+            <span class="hint">за обраний період</span>
+          </div>
+          <div class="table-wrap">
+            <table class="t" id="overviewSources">
+              <thead><tr><th>Джерело</th><th>Канал</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Conv.</th><th class="num">CR</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Місячна динаміка
+            <span class="hint">останні 12 місяців</span>
+          </div>
+          <div class="chart-box"><canvas id="overviewMonthly"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">YoY: цей рік vs минулий
+            <span class="hint">по місяцях</span>
+          </div>
+          <div class="chart-box"><canvas id="overviewYoY"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PAID OVERVIEW
+         ============================================================ -->
+    <section class="tab-panel" data-panel="paid">
+      <div class="page-head">
+        <h1 class="page-title">Paid <span>Overview</span></h1>
+        <div class="page-subtitle">Зведено по 3 каналах. Google Ads валюта конвертована з AED в USD за фіксованим курсом 3.6725.</div>
+      </div>
+
+      <div class="grid grid-4 section" id="kpiPaid"></div>
+
+      <div class="grid grid-3 section" id="paidCards"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Spend USD по каналах — динаміка</div>
+          <div class="chart-box lg"><canvas id="paidSpendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Сесії GA4 по платних кампаніях
+            <span class="hint">для зведення кабінет vs аналітика</span>
+          </div>
+          <div class="chart-box lg"><canvas id="paidSessionsChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Cross-channel порівняння (30 днів)
+          <span class="hint">всі цифри в USD де можливо</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="paidCrossTable">
+            <thead><tr>
+              <th>Канал</th><th>Status</th><th class="num">Spend USD</th><th class="num">Imp</th>
+              <th class="num">Кліків</th><th class="num">CTR</th><th class="num">CPC USD</th>
+              <th class="num">Конв (каб)</th><th class="num">CPL USD</th>
+              <th class="num">Сесії GA4</th><th class="num">GA4 conv</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         GOOGLE ADS
+         ============================================================ -->
+    <section class="tab-panel" data-panel="gads">
+      <div class="page-head">
+        <h1 class="page-title">Google <span>Ads</span></h1>
+        <div class="page-subtitle">Customer ID 3651749366 (Pin.Top UAE | AED). Конвертація AED→USD за фіксованим курсом UAE peg <b>3.6725</b>.</div>
+      </div>
+
+      <div class="grid grid-6 section" id="kpiGads"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Spend AED + USD по днях
+            <span class="hint">90 днів</span>
+          </div>
+          <div class="chart-box lg"><canvas id="gadsDaily"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Конверсії та клики по днях</div>
+          <div class="chart-box lg"><canvas id="gadsConvTrend"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Кампанії · клік щоб розгорнути ad groups
+          <span class="hint">останні 30 днів</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="gadsCampTable">
+            <thead><tr>
+              <th></th><th>Кампанія</th><th>Type</th><th>Status</th>
+              <th class="num">Spend USD</th><th class="num">Spend AED</th>
+              <th class="num">Imp</th><th class="num">Clk</th>
+              <th class="num">CTR</th><th class="num">CPC USD</th>
+              <th class="num">Conv</th><th class="num">CPA USD</th>
+              <th class="num">IS</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Top-30 ключових слів
+            <span class="hint">за spend</span>
+          </div>
+          <div class="scroll-h">
+            <table class="t" id="gadsKwTable">
+              <thead><tr><th>Keyword</th><th>Type</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">CTR</th><th class="num">Conv</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top-20 оголошень</div>
+          <div class="scroll-h">
+            <table class="t" id="gadsAdsTable">
+              <thead><tr><th>Headline (перші 3)</th><th>Кампанія</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">Conv</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         TIKTOK
+         ============================================================ -->
+    <section class="tab-panel" data-panel="tiktok">
+      <div class="page-head">
+        <h1 class="page-title">TikTok <span>Ads</span></h1>
+        <div class="page-subtitle">Advertiser 7587396752228171783. Кабінетні дані з Marketing API + сопоставлення з GA4 source=tiktok.</div>
+      </div>
+
+      <div class="grid grid-6 section" id="kpiTikTok"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Spend USD по днях</div>
+          <div class="chart-box lg"><canvas id="ttDaily"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Конверсії та CPA по днях</div>
+          <div class="chart-box lg"><canvas id="ttConvTrend"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Кампанії · клік щоб розгорнути ad groups
+          <span class="hint">30 днів, daily-level звіт</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="ttCampTable">
+            <thead><tr>
+              <th></th><th>Кампанія</th><th>Status</th><th>Objective</th>
+              <th class="num">Spend USD</th><th class="num">Imp</th>
+              <th class="num">Clk</th><th class="num">CTR</th>
+              <th class="num">CPC</th><th class="num">Conv</th><th class="num">CPL USD</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Топ-20 креативів (ads)
+          <span class="hint">за конверсіями</span>
+        </div>
+        <div class="scroll-h">
+          <table class="t" id="ttAdsTable">
+            <thead><tr>
+              <th>Ad name</th><th>tt_item_id</th><th>Кампанія</th>
+              <th class="num">Spend</th><th class="num">Imp</th><th class="num">Clk</th>
+              <th class="num">CTR</th><th class="num">Conv</th><th class="num">CPL</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Зведення TikTok кабінет vs GA4 (source=tiktok)
+          <span class="hint">щоб бачити різницю в атрибуції</span>
+        </div>
+        <div class="grid grid-3" id="ttReconcile"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         META
+         ============================================================ -->
+    <section class="tab-panel" data-panel="meta">
+      <div class="page-head">
+        <h1 class="page-title">Meta <span>Ads</span></h1>
+        <div class="page-subtitle">Перший Meta-запуск: 18-20 квітня 2026.</div>
+      </div>
+
+      <div class="notice warning" id="metaNotice">
+        <span class="ic">⚠</span> <b>Прямого API доступу до Meta Ads Manager поки немає.</b>
+        Аккаунт у Meta for Developers ще не схвалено. Дані нижче — з GA4 (utm_source=meta або utm_source=facebook), розшифровка кампаній з UTM.
+        <br><b>Що недоступно:</b> spend, impressions, CTR, CPC, CPL з кабінету. <b>Що є:</b> сесії, новi юзери, конверсії GA4 + назви кампаній з UTM.
+      </div>
+
+      <div class="grid grid-4 section" id="kpiMeta"></div>
+
+      <div class="card section">
+        <div class="card-title">Кампанії Meta (з GA4 utm)
+          <span class="hint">фільтр source IN (meta, facebook)</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="metaTable">
+            <thead><tr>
+              <th>Source</th><th>Campaign (UTM)</th>
+              <th class="num">Сесії</th><th class="num">Engaged</th>
+              <th class="num">Нові</th><th class="num">Конв (event)</th>
+              <th class="num">Bounce</th><th class="num">Час</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Hygiene check Meta UTM
+          <span class="hint">перевірка на типові помилки запуску</span>
+        </div>
+        <div id="metaHygiene"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         UTM & ATTRIBUTION
+         ============================================================ -->
+    <section class="tab-panel" data-panel="utm">
+      <div class="page-head">
+        <h1 class="page-title">UTM &amp; <span>Attribution</span></h1>
+        <div class="page-subtitle">Розрізи трафіку по UTM-параметрах. Hygiene checker за стандартом PT-11275.</div>
+      </div>
+
+      <div class="grid grid-4 section" id="kpiUtm"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Source × Medium — heatmap по сесіях</div>
+          <div class="chart-box lg"><canvas id="utmHeat"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">UTM source — частка трафіку</div>
+          <div class="chart-box"><canvas id="utmDonut"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Топ-30 кампаній (UTM)
+          <span class="hint">90 днів</span>
+        </div>
+        <div class="scroll-h">
+          <table class="t" id="utmCampTable">
+            <thead><tr>
+              <th>Source / Medium</th><th>Campaign</th>
+              <th class="num">Сесії</th><th class="num">Нові</th>
+              <th class="num">Конв</th><th class="num">Engaged</th>
+              <th class="num">CR</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">UTM Hygiene Issues
+          <span class="hint">URL-encoded, нерозгорнуті макроси, неправильні source naming</span>
+        </div>
+        <div id="utmIssues"></div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Reconcile: кабінет vs GA4 (30 днів)
+          <span class="hint">різниця може бути через тайм-зони, бот-фільтри, attribution windows</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="reconcileTable">
+            <thead><tr>
+              <th>Канал</th>
+              <th class="num">Кабінет: Clk</th><th class="num">GA4: Sess</th><th class="num">Δ</th>
+              <th class="num">Кабінет: Conv</th><th class="num">GA4: Conv</th><th class="num">Δ</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         ORGANIC & GSC
+         ============================================================ -->
+    <section class="tab-panel" data-panel="organic">
+      <div class="page-head">
+        <h1 class="page-title">Organic &amp; <span>Search Console</span></h1>
+        <div class="page-subtitle">Property <code>sc-domain:pin.top</code>. GSC має 2 дні затримки даних. Бренд-терміни: pin.top, pin top, pintop, пінтоп тощо.</div>
+      </div>
+
+      <div class="sub-tabs" id="gscSubTabs">
+        <button class="sub-tab active" data-sub="28d">28 днів</button>
+        <button class="sub-tab" data-sub="90d">90 днів</button>
+      </div>
+
+      <div class="grid grid-4 section" id="kpiGsc"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Top-25 ключових запитів</div>
+          <div class="scroll-h">
+            <table class="t" id="gscQueriesTable">
+              <thead><tr>
+                <th>Query</th><th class="num">Clicks</th><th class="num">Impr</th>
+                <th class="num">CTR</th><th class="num">Pos</th><th>Brand</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top-25 сторінок</div>
+          <div class="scroll-h">
+            <table class="t" id="gscPagesTable">
+              <thead><tr>
+                <th>URL</th><th class="num">Clicks</th><th class="num">Impr</th>
+                <th class="num">CTR</th><th class="num">Pos</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Бренд vs не-бренд
+            <span class="hint">умовний поділ за списком term-ів</span>
+          </div>
+          <div class="chart-box"><canvas id="gscBrandChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Розподіл позицій
+            <span class="hint">кількість запитів на позиціях</span>
+          </div>
+          <div class="chart-box"><canvas id="gscPosChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">SEO blockers</div>
+        <div id="seoBlockers"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         AUDIENCE
+         ============================================================ -->
+    <section class="tab-panel" data-panel="audience">
+      <div class="page-head">
+        <h1 class="page-title">Audience <span>Insights</span></h1>
+        <div class="page-subtitle">Демографія, гео, девайси, мови. Дані з GA4 з обмеженнями privacy thresholds.</div>
+      </div>
+
+      <div class="grid grid-3 section">
+        <div class="card">
+          <div class="card-title">Девайси
+            <span class="hint">30d</span>
+          </div>
+          <div class="chart-box sm"><canvas id="audDevice"></canvas></div>
+          <table class="t" id="audDeviceTable" style="margin-top:10px;">
+            <thead><tr><th>Device</th><th>OS</th><th class="num">Сесії</th><th class="num">Bounce</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Топ країн
+            <span class="hint">90d</span>
+          </div>
+          <div class="chart-box sm"><canvas id="audCountry"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Топ міст
+            <span class="hint">30d, Україна</span>
+          </div>
+          <div class="chart-box sm"><canvas id="audCity"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Топ pin.top сторінок
+            <span class="hint">тільки pin.top scope</span>
+          </div>
+          <div class="scroll-h">
+            <table class="t" id="audPagesTable">
+              <thead><tr><th>Page</th><th class="num">Pageviews</th><th class="num">Users</th><th class="num">Time</th><th class="num">Bounce</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Топ landing pages
+            <span class="hint">точки входу на pin.top</span>
+          </div>
+          <div class="scroll-h">
+            <table class="t" id="audLandingTable">
+              <thead><tr><th>Landing</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Bounce</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Мови
+            <span class="hint">90d</span>
+          </div>
+          <div class="chart-box"><canvas id="audLang"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Час доби × день тижня
+            <span class="hint">heat-mapу немає, поки два графіки</span>
+          </div>
+          <div class="chart-box"><canvas id="audHourDow"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         INSIGHTS & ANOMALIES
+         ============================================================ -->
+    <section class="tab-panel" data-panel="insights">
+      <div class="page-head">
+        <h1 class="page-title">Insights &amp; <span>Anomalies</span></h1>
+        <div class="page-subtitle">Системні висновки + чекліст якості трекінгу + воронка реєстрацій.</div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Воронка реєстрацій (90d)
+          <span class="hint">з GA4 events</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="funnelTable">
+            <thead><tr><th>Подія</th><th class="num">Event count</th><th class="num">Унікальних юзерів</th><th class="num">Конверсій</th><th class="num">% від попер.</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Якість трекінгу — чекліст</div>
+          <div id="trackingChecklist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Знайдені аномалії та інсайти</div>
+          <div id="anomalyList"></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Топ-20 подій GA4 (30d)</div>
+        <div class="scroll-h">
+          <table class="t" id="eventsTable">
+            <thead><tr><th>Event</th><th class="num">Count</th><th class="num">Конв</th><th class="num">Unique users</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div>pin.top · Marketing Intelligence Dashboard · оновлено <span id="updatedAt"></span></div>
+    <div class="src-row">
+      <span>GA4 property <b>358528411</b></span>
+      <span>Google Ads <b>3651749366</b></span>
+      <span>TikTok adv <b>7587396752228171783</b></span>
+      <span>GSC <b>sc-domain:pin.top</b></span>
+      <span>AED→USD <b>3.6725</b></span>
     </div>
-    <div>
-      <h3 style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Device mix</h3>
-      <div class="chart-box sm"><canvas id="deviceChart"></canvas></div>
+    <div style="margin-top:8px;">
+      <a href="https://github.com/Vladimir-VF/pintop-ga4-dashboard">GitHub repo</a> ·
+      <a href="./audit-24m.html">24-місячний аудит</a> ·
+      <a href="./weekly-2026-04-20.html">Тижневий звіт 14-20.04</a>
     </div>
-  </div>
-  <h3 style="font-size:12px;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px;">Найпопулярніші сторінки</h3>
-  <div class="scroll-h">
-    <table>
-      <thead><tr><th>Сторінка</th><th class="num">Перегляди</th><th class="num">Користувачів</th><th class="num">Час на сесії</th></tr></thead>
-      <tbody id="pagesTable"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- MONTHLY TREND -->
-<div class="section">
-  <h2><span class="ic">📅</span>Місячна динаміка (12 міс)</h2>
-  <div class="chart-box"><canvas id="monthlyChart"></canvas></div>
-</div>
-
-<div class="footer">
-  Оновлення щопонеділка о 9:00 · <a href="./weekly-2026-04-20.html">Детальний тижневий звіт</a> · <a href="https://github.com/Vladimir-VF/pintop-ga4-dashboard">GitHub</a>
-</div>
+  </footer>
 
 </div>
 
 <script src="./data.js"></script>
-<script>
-(()=>{
-const D = window.PINTOP_DATA;
-const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#60a5fa','#a78bfa','#fb7185'];
-const $ = id => document.getElementById(id);
-const charts = {};
-const fmt = n => (n>=1000? (n/1000).toFixed(1)+'k' : Math.round(n).toString());
-const pct = n => (n*100).toFixed(1)+'%';
-const dur = s => s<60? s.toFixed(0)+'с' : Math.floor(s/60)+'м '+Math.floor(s%60)+'с';
-
-// Parse date
-const parseD = s => {
-  const y=+s.slice(0,4), m=+s.slice(4,6)-1, d=+s.slice(6,8);
-  return new Date(y,m,d);
-};
-
-// TODAY = max date in daily365
-const maxDate = D.daily365.reduce((m,r)=> r.d>m?r.d:m, '20250101');
-const today = parseD(maxDate);
-$('dataUpdated').textContent = 'оновлено ' + maxDate.slice(0,4)+'-'+maxDate.slice(4,6)+'-'+maxDate.slice(6,8);
-
-let currentFrom=null, currentTo=null, currentPrevFrom=null, currentPrevTo=null;
-
-function setPeriod(days){
-  const to = new Date(today);
-  const from = new Date(today); from.setDate(from.getDate() - days + 1);
-  const prevTo = new Date(from); prevTo.setDate(prevTo.getDate() - 1);
-  const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate() - days + 1);
-  currentFrom = from; currentTo = to; currentPrevFrom = prevFrom; currentPrevTo = prevTo;
-  render();
-}
-
-function setCustom(fromStr, toStr){
-  const f = new Date(fromStr), t = new Date(toStr);
-  const days = Math.round((t-f)/86400000)+1;
-  const prevTo = new Date(f); prevTo.setDate(prevTo.getDate()-1);
-  const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate()-days+1);
-  currentFrom=f; currentTo=t; currentPrevFrom=prevFrom; currentPrevTo=prevTo;
-  render();
-}
-
-function inRange(dateStr, from, to){
-  const d = parseD(dateStr);
-  return d>=from && d<=to;
-}
-
-// aggregators
-function agg(data, from, to){
-  const rows = data.filter(r => inRange(r.d, from, to));
-  const bySum = {s:0,u:0,nu:0,c:0};
-  const byCh = {};
-  const byDay = {};
-  rows.forEach(r=>{
-    bySum.s+=r.s; bySum.u+=r.u; bySum.nu+=r.nu; bySum.c+=r.c;
-    if(!byCh[r.ch]) byCh[r.ch]={s:0,u:0,nu:0,c:0};
-    byCh[r.ch].s+=r.s; byCh[r.ch].u+=r.u; byCh[r.ch].nu+=r.nu; byCh[r.ch].c+=r.c;
-    if(!byDay[r.d]) byDay[r.d]={s:0,u:0,nu:0,c:0};
-    byDay[r.d].s+=r.s; byDay[r.d].u+=r.u; byDay[r.d].nu+=r.nu; byDay[r.d].c+=r.c;
-  });
-  return {sum:bySum, byCh, byDay};
-}
-
-function renderKPIs(cur, prv){
-  const deltaHtml = (c, p, asPct=false, invert=false)=>{
-    if(!p && !c) return '<div class="kpi-delta neutral">—</div>';
-    if(!p) return '<div class="kpi-delta up">↑ нове</div>';
-    const d = (c-p)/p*100;
-    const cls = (invert?-d:d) > 0.5 ? 'up' : (invert?-d:d) < -0.5 ? 'down' : 'neutral';
-    const arrow = d>0? '↑' : d<0? '↓' : '•';
-    return `<div class="kpi-delta ${cls}">${arrow} ${Math.abs(d).toFixed(1)}% vs попер.</div>`;
-  };
-  const html = `
-    <div class="kpi blue"><div class="kpi-label">Сесії</div><div class="kpi-val">${fmt(cur.sum.s)}</div>${deltaHtml(cur.sum.s, prv.sum.s)}</div>
-    <div class="kpi green"><div class="kpi-label">Активні користувачі</div><div class="kpi-val">${fmt(cur.sum.u)}</div>${deltaHtml(cur.sum.u, prv.sum.u)}</div>
-    <div class="kpi purple"><div class="kpi-label">Нові користувачі</div><div class="kpi-val">${fmt(cur.sum.nu)}</div>${deltaHtml(cur.sum.nu, prv.sum.nu)}</div>
-    <div class="kpi amber"><div class="kpi-label">Конверсії (GA4)</div><div class="kpi-val">${fmt(cur.sum.c)}</div>${deltaHtml(cur.sum.c, prv.sum.c)}</div>
-    <div class="kpi"><div class="kpi-label">Сесій / користувач</div><div class="kpi-val">${cur.sum.u? (cur.sum.s/cur.sum.u).toFixed(2) : '—'}</div><div class="kpi-sub">глибина залучення</div></div>
-    <div class="kpi red"><div class="kpi-label">% нових</div><div class="kpi-val">${cur.sum.u? pct(cur.sum.nu/cur.sum.u) : '—'}</div><div class="kpi-sub">first touch</div></div>
-  `;
-  $('kpiRow').innerHTML = html;
-}
-
-function renderInsights(cur, prv){
-  const items = [];
-  const paid = (cur.byCh['Paid Social']?.s||0) + (cur.byCh['Paid Search']?.s||0) + (cur.byCh['Paid Video']?.s||0);
-  const paidPrv = (prv.byCh['Paid Social']?.s||0) + (prv.byCh['Paid Search']?.s||0) + (prv.byCh['Paid Video']?.s||0);
-  if(paid>0){
-    const d = paidPrv? ((paid-paidPrv)/paidPrv*100).toFixed(0) : '—';
-    items.push(`<div class="insight-box"><b>💰 Paid трафік:</b> ${fmt(paid)} сесій (${paidPrv? (d>0?'+':'')+d+'%' : 'новий'} до попереднього періоду). Paid Social ${fmt(cur.byCh['Paid Social']?.s||0)} · Paid Search ${fmt(cur.byCh['Paid Search']?.s||0)}.</div>`);
-  }
-  if(cur.sum.nu/cur.sum.u > 0.6){
-    items.push(`<div class="insight-box"><b>🆕 Більшість аудиторії — нові:</b> ${pct(cur.sum.nu/cur.sum.u)} first-visit. Це ознака активного performance-запуску та холодного трафіку.</div>`);
-  }
-  const topCh = Object.entries(cur.byCh).sort((a,b)=>b[1].s-a[1].s)[0];
-  if(topCh){
-    items.push(`<div class="insight-box"><b>🏆 Топ канал:</b> ${topCh[0]} — ${fmt(topCh[1].s)} сесій (${pct(topCh[1].s/cur.sum.s)} всього трафіку), ${fmt(topCh[1].c)} конверсій.</div>`);
-  }
-  $('insights').innerHTML = items.join('');
-}
-
-function renderTrend(cur){
-  const days = Object.keys(cur.byDay).sort();
-  const labels = days.map(d => d.slice(4,6)+'.'+d.slice(6,8));
-  const sData = days.map(d => cur.byDay[d].s);
-  const nuData = days.map(d => cur.byDay[d].nu);
-  const cData = days.map(d => cur.byDay[d].c);
-  $('trendRange').textContent = days.length>0 ? `${days[0].slice(0,4)}-${days[0].slice(4,6)}-${days[0].slice(6,8)} → ${days[days.length-1].slice(0,4)}-${days[days.length-1].slice(4,6)}-${days[days.length-1].slice(6,8)}` : '';
-
-  if(charts.trend) charts.trend.destroy();
-  charts.trend = new Chart($('trendChart'), {
-    type: 'line',
-    data: { labels, datasets: [
-      {label:'Сесії', data:sData, borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.1)', tension:.3, fill:true, yAxisID:'y'},
-      {label:'Нові користувачі', data:nuData, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.08)', tension:.3, fill:false, yAxisID:'y'},
-      {label:'Конверсії', data:cData, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.08)', tension:.3, fill:false, yAxisID:'y1'}
-    ]},
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
-      scales:{
-        x:{ticks:{color:'#8b93b0',maxTicksLimit:15},grid:{color:'rgba(255,255,255,.04)'}},
-        y:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Sessions / Users',color:'#8b93b0'}},
-        y1:{position:'right',ticks:{color:'#f59e0b'},grid:{drawOnChartArea:false},title:{display:true,text:'Conversions',color:'#f59e0b'}}
-      }
-    }
-  });
-}
-
-function renderChannels(cur){
-  const entries = Object.entries(cur.byCh).sort((a,b)=>b[1].s-a[1].s);
-  const labels = entries.map(e=>e[0]);
-  const vals = entries.map(e=>e[1].s);
-  if(charts.channel) charts.channel.destroy();
-  charts.channel = new Chart($('channelChart'), {
-    type:'doughnut',
-    data: {labels, datasets:[{data:vals, backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
-    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{color:'#e8ecf8',font:{size:11},padding:8}}}}
-  });
-  $('channelTable').innerHTML = entries.map(e=>`
-    <tr><td>${e[0]}</td><td class="num">${fmt(e[1].s)}</td><td class="num">${fmt(e[1].nu)}</td><td class="num">${fmt(e[1].c)}</td></tr>
-  `).join('');
-}
-
-function renderPaidCampaigns(){
-  const tkTotal = D.tiktok.reduce((a,r)=>({spend:a.spend+r.spend,clk:a.clk+r.clk,conv:a.conv+r.conv,imp:a.imp+r.imp}),{spend:0,clk:0,conv:0,imp:0});
-  const gadsTotal = D.gads.reduce((a,r)=>({spend:a.spend+r.spend,clk:a.clk+r.clk,conv:a.conv+r.conv}),{spend:0,clk:0,conv:0});
-  const metaTotal = D.meta.reduce((a,r)=>({s:a.s+r.s,nu:a.nu+r.nu,c:a.c+r.c}),{s:0,nu:0,c:0});
-
-  const html = `
-    <div class="paid-card tiktok">
-      <div class="pc-head"><div class="pc-logo">🎵</div><div><div class="pc-name">TikTok Ads</div><div class="pc-sub">Relaunch 18.04 · $ USD</div></div></div>
-      <div class="pc-metrics">
-        <div class="pc-metric"><div class="l">Витрачено</div><div class="v">$${tkTotal.spend.toFixed(2)}</div></div>
-        <div class="pc-metric"><div class="l">Кліків</div><div class="v">${fmt(tkTotal.clk)}</div></div>
-        <div class="pc-metric"><div class="l">Конверсії</div><div class="v">${tkTotal.conv}</div></div>
-        <div class="pc-metric"><div class="l">CPA</div><div class="v">${tkTotal.conv? '$'+(tkTotal.spend/tkTotal.conv).toFixed(2) : '—'}</div></div>
-      </div>
-      ${D.tiktok.sort((a,b)=>b.spend-a.spend).slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>$${c.spend.toFixed(2)}</span></div>`).join('')}
-    </div>
-    <div class="paid-card google">
-      <div class="pc-head"><div class="pc-logo">🔍</div><div><div class="pc-name">Google Ads</div><div class="pc-sub">Search · AED</div></div></div>
-      <div class="pc-metrics">
-        <div class="pc-metric"><div class="l">Витрачено</div><div class="v">AED ${gadsTotal.spend.toFixed(0)}</div></div>
-        <div class="pc-metric"><div class="l">Кліків</div><div class="v">${fmt(gadsTotal.clk)}</div></div>
-        <div class="pc-metric"><div class="l">Конверсії</div><div class="v">${gadsTotal.conv.toFixed(0)}</div></div>
-        <div class="pc-metric"><div class="l">CPA</div><div class="v">${gadsTotal.conv? 'AED '+(gadsTotal.spend/gadsTotal.conv).toFixed(2) : '—'}</div></div>
-      </div>
-      ${D.gads.sort((a,b)=>b.spend-a.spend).slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>AED ${c.spend.toFixed(0)}</span></div>`).join('')}
-    </div>
-    <div class="paid-card meta">
-      <div class="pc-head"><div class="pc-logo">Ⓜ</div><div><div class="pc-name">Meta Ads</div><div class="pc-sub">Launch 19-20.04</div></div></div>
-      <div class="pc-metrics">
-        <div class="pc-metric"><div class="l">Сесії GA4</div><div class="v">${fmt(metaTotal.s)}</div></div>
-        <div class="pc-metric"><div class="l">Нових</div><div class="v">${fmt(metaTotal.nu)}</div></div>
-        <div class="pc-metric"><div class="l">Конверсії GA4</div><div class="v">${fmt(metaTotal.c)}</div></div>
-        <div class="pc-metric"><div class="l">Статус</div><div class="v" style="font-size:13px;color:#fbbf24;">Перший тиждень</div></div>
-      </div>
-      ${D.meta.slice(0,3).map(c=>`<div class="campaign-row"><span class="cn">${c.name}</span><span>${fmt(c.s)} сес</span></div>`).join('')}
-    </div>
-  `;
-  $('paidCards').innerHTML = html;
-}
-
-function renderAudience(tab){
-  const ageData = tab==='week'? D.age_week : D.age_month;
-  const genderData = tab==='week'? D.gender_week : D.gender_month;
-  const cityData = tab==='week'? D.city_week : D.city_month;
-
-  // Age chart
-  const ageFiltered = ageData.filter(r=>r.age!=='unknown');
-  if(charts.age) charts.age.destroy();
-  charts.age = new Chart($('ageChart'), {
-    type:'doughnut',
-    data:{labels:ageFiltered.map(r=>r.age), datasets:[{data:ageFiltered.map(r=>r.s), backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:11}}}}}
-  });
-
-  // Gender
-  const gFiltered = genderData.filter(r=>r.g!=='unknown');
-  if(charts.gender) charts.gender.destroy();
-  charts.gender = new Chart($('genderChart'), {
-    type:'doughnut',
-    data:{labels:gFiltered.map(r=>r.g==='male'?'Чоловіки':r.g==='female'?'Жінки':r.g), datasets:[{data:gFiltered.map(r=>r.s), backgroundColor:['#3b82f6','#ec4899','#8b93b0'], borderColor:'#121830', borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:11}}}}}
-  });
-
-  // Language (only week for now — month не витягнули interests, тільки language)
-  const langData = D.lang_week;
-  if(charts.lang) charts.lang.destroy();
-  charts.lang = new Chart($('langChart'), {
-    type:'doughnut',
-    data:{labels:langData.map(r=>r.l), datasets:[{data:langData.map(r=>r.s), backgroundColor:palette, borderColor:'#121830', borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:10}}}}}
-  });
-
-  // Cities (top 15, filter out not-set)
-  const cityFiltered = cityData.filter(r=>r.c && r.c!=='(not set)').slice(0,15);
-  if(charts.city) charts.city.destroy();
-  charts.city = new Chart($('cityChart'), {
-    type:'bar',
-    data:{labels:cityFiltered.map(r=>r.c), datasets:[
-      {label:'Сесії', data:cityFiltered.map(r=>r.s), backgroundColor:'#6366f1'},
-      {label:'Нові', data:cityFiltered.map(r=>r.nu), backgroundColor:'#10b981'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
-      scales:{x:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8b93b0'},grid:{display:false}}}}
-  });
-}
-
-function renderBehavior(){
-  // Engagement table (top 12 paid + referral)
-  const top = D.engage.filter(r=>r.s>=50).slice(0,12);
-  $('engageTable').innerHTML = top.map(r=>{
-    const srcLabel = r.src==='(direct)'? 'Direct' : `${r.src} / ${r.med}`;
-    const erClass = r.er>0.5? 'green' : r.er>0.25? 'amber' : 'red';
-    return `<tr><td>${srcLabel}</td><td class="num">${fmt(r.s)}</td><td class="num"><span class="badge ${erClass}">${(r.er*100).toFixed(1)}%</span></td><td class="num">${dur(r.dur)}</td><td class="num">${r.pv.toFixed(1)}</td></tr>`;
-  }).join('');
-
-  // Device donut (week sum)
-  const devSum = {};
-  D.device_channel.forEach(r=>{devSum[r.dev]=(devSum[r.dev]||0)+r.s;});
-  const devEntries = Object.entries(devSum);
-  if(charts.device) charts.device.destroy();
-  charts.device = new Chart($('deviceChart'), {
-    type:'doughnut',
-    data:{labels:devEntries.map(e=>e[0]==='mobile'?'📱 Mobile':e[0]==='desktop'?'💻 Desktop':'📱 Tablet'), datasets:[{data:devEntries.map(e=>e[1]), backgroundColor:['#6366f1','#10b981','#f59e0b'], borderColor:'#121830', borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#e8ecf8',font:{size:12}}}}}
-  });
-
-  // Pages table
-  $('pagesTable').innerHTML = D.pages.slice(0,20).map(p=>`
-    <tr><td style="font-family:ui-monospace,monospace;font-size:12px;">${p.p||'/'}</td><td class="num">${fmt(p.pv)}</td><td class="num">${fmt(p.u)}</td><td class="num">${dur(p.dur)}</td></tr>
-  `).join('');
-}
-
-function renderMonthly(){
-  const sorted = D.monthly.sort((a,b)=>a.m.localeCompare(b.m));
-  const labels = sorted.map(r=>r.m.slice(0,4)+'-'+r.m.slice(4,6));
-  if(charts.monthly) charts.monthly.destroy();
-  charts.monthly = new Chart($('monthlyChart'), {
-    type:'bar',
-    data:{labels, datasets:[
-      {label:'Сесії', data:sorted.map(r=>r.s), backgroundColor:'#6366f1'},
-      {label:'Нові користувачі', data:sorted.map(r=>r.nu), backgroundColor:'#10b981'},
-      {label:'Конверсії', data:sorted.map(r=>r.c), type:'line', borderColor:'#f59e0b', backgroundColor:'#f59e0b', yAxisID:'y1', tension:.3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#e8ecf8',font:{size:12}}}},
-      scales:{
-        x:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},
-        y:{ticks:{color:'#8b93b0'},grid:{color:'rgba(255,255,255,.04)'}},
-        y1:{position:'right',ticks:{color:'#f59e0b'},grid:{drawOnChartArea:false}}
-      }}
-  });
-}
-
-function render(){
-  const cur = agg(D.daily365, currentFrom, currentTo);
-  const prv = agg(D.daily365, currentPrevFrom, currentPrevTo);
-  renderKPIs(cur, prv);
-  renderInsights(cur, prv);
-  renderTrend(cur);
-  renderChannels(cur);
-}
-
-// Event listeners
-document.querySelectorAll('.period-switch button').forEach(btn=>{
-  btn.onclick = ()=>{
-    document.querySelectorAll('.period-switch button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const p = btn.dataset.period;
-    if(p==='custom'){
-      $('customRange').style.display='flex';
-      const to = today.toISOString().slice(0,10);
-      const from = new Date(today); from.setDate(from.getDate()-30);
-      $('dateFrom').value = from.toISOString().slice(0,10);
-      $('dateTo').value = to;
-    } else {
-      $('customRange').style.display='none';
-      setPeriod(+p);
-    }
-  };
-});
-$('dateFrom').onchange = $('dateTo').onchange = ()=>{
-  if($('dateFrom').value && $('dateTo').value){
-    setCustom($('dateFrom').value, $('dateTo').value);
-  }
-};
-
-document.querySelectorAll('#audTab button').forEach(btn=>{
-  btn.onclick = ()=>{
-    document.querySelectorAll('#audTab button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    renderAudience(btn.dataset.tab);
-  };
-});
-
-// Initial render
-setPeriod(7);
-renderPaidCampaigns();
-renderAudience('week');
-renderBehavior();
-renderMonthly();
-})();
-</script>
+<script src="./dashboard.js"></script>
 </body>
 </html>
