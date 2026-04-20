@@ -1,12 +1,15 @@
-# pin.top — GA4 Analytics
+# pin.top — Marketing Analytics
 
-Маркетинг-аналітика pin.top: довгостроковий дашборд + тижневі звіти по платних запусках.
+Маркетингова аналітика pin.top на GitHub Pages: інтерактивний дашборд + тижневі рекламні звіти.
 
-## Що є
+## 📊 Дашборди
 
-- **[📊 GA4 Dashboard (24 місяці)](https://vladimir-vf.github.io/pintop-ga4-dashboard/)** — глибокий аудит трафіку за 2024–2026
-- **Weekly reports** — тижневі зрізи з розбивкою по каналах, UTM і кампаніях:
-  - [14–20 квітня 2026](./weekly-2026-04-20.md) — TikTok relaunch + Meta launch
+- **[Marketing Dashboard](https://vladimir-vf.github.io/pintop-ga4-dashboard/)** — інтерактивний, з перемикачами періодів (7/30/90/365 днів + custom). KPI, канали, платні кампанії, аудиторія, поведінка, місячна динаміка.
+- **[GA4 24-місячний аудит](https://vladimir-vf.github.io/pintop-ga4-dashboard/audit-24m.html)** — глибокий історичний аудит (Квітень 2024 — Квітень 2026).
+
+## 📈 Тижневі звіти
+
+- [14–20 квітня 2026](https://vladimir-vf.github.io/pintop-ga4-dashboard/weekly-2026-04-20.html) — TikTok relaunch + Meta launch + Google Ads optimization.
 
 ## Джерела даних
 
@@ -16,7 +19,7 @@
 
 ## Cadence
 
-Тижневі звіти генеруються автоматично по понеділках о 9:00 (scheduled task `pintop-analytics-weekly-refresh`) і коміт в цей репозиторій.
+Автоматичне оновлення щопонеділка о 9:00 (scheduled task `pintop-analytics-weekly-refresh`).
 
 ---
 
