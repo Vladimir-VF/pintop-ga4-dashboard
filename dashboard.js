@@ -435,8 +435,9 @@ function renderOverview() {
     },
   });
 
-  // Top sources (з фільтром по каналу)
-  const utmSorted = D.ga4.utm
+  // Top sources (90d, з фільтром по каналу; URL-encoded дублі склеєні)
+  const utmPool = D.ga4.utm_merged || D.ga4.utm;
+  const utmSorted = utmPool
     .filter(u => chIsSelected(utmToChannel(u.src, u.med)))
     .sort((a,b) => b.s - a.s).slice(0, 12);
   $('overviewSources').querySelector('tbody').innerHTML = utmSorted.map(u => {
@@ -1256,47 +1257,61 @@ function renderTikTok() {
 // ============================================================
 
 function renderMeta() {
-  const meta_utm = D.meta.utm_90d || [];
-  const totalSess = meta_utm.reduce((a,r)=>a+r.s,0);
-  const totalNu = meta_utm.reduce((a,r)=>a+r.nu,0);
-  const totalConv = meta_utm.reduce((a,r)=>a+r.c,0);
-  const totalEng = meta_utm.reduce((a,r)=>a+r.es,0);
+  const stats = D.meta.stats || {};
+  const merged = D.meta.utm_merged_90d || [];
 
   $('kpiMeta').innerHTML = [
-    kpiCard({ color: 'blue', label: 'GA4 сесії (90d)', val: fmtN(totalSess), sub: 'utm_source = meta або facebook' }),
-    kpiCard({ color: 'purple', label: 'Engaged sessions', val: fmtN(totalEng), sub: totalSess ? `${(totalEng/totalSess*100).toFixed(0)}% engagement rate (>10s або 2+ pages)` : '' }),
-    kpiCard({ color: 'pink', label: 'Нові юзери (90d)', val: fmtN(totalNu), sub: 'first-touch users' }),
-    kpiCard({ color: 'amber', label: 'GA4 conv events', val: fmtN(totalConv), sub: 'event count, не unique users' }),
+    kpiCard({ color: 'blue', label: 'Current Meta (90d)', val: fmtN(stats.current_sess_90d), sub: `активні: Brands 20.04, Creators 18/19.04` }),
+    kpiCard({ color: 'pink', label: 'Нові юзери (активні)', val: fmtN(stats.current_nu_90d), sub: 'з нових запусків' }),
+    kpiCard({ color: 'green', label: 'GA4 conv events (активні)', val: fmtN(stats.current_conv_90d), sub: 'event count, не users' }),
+    kpiCard({ color: 'amber', label: 'У Unknown через paid_social', val: fmtN(stats.paid_social_unknown), sub: 'старі кампанії з неправильним medium' }),
   ].join('');
 
-  $('metaTable').querySelector('tbody').innerHTML = meta_utm.map(u => `
-    <tr>
-      <td><span class="badge ${u.src === 'meta' ? 'blue' : 'red'}">${u.src}</span></td>
-      <td class="mono" title="${u.camp}">${u.camp.length > 50 ? u.camp.slice(0,50)+'…' : u.camp}</td>
-      <td class="num">${fmtN(u.s)}</td>
-      <td class="num">${fmtN(u.es)}</td>
-      <td class="num">${fmtN(u.nu)}</td>
-      <td class="num">${fmtN(u.c)}</td>
-      <td class="num">${fmtPct(u.br)}</td>
-      <td class="num">${fmtDur(u.asd)}</td>
-    </tr>`).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:20px;">Немає Meta UTM-трафіку у GA4 за 90д</td></tr>';
+  // Розбивка по типах
+  const byType = {};
+  merged.forEach(u => {
+    const t = u.meta_class ? u.meta_class.type : 'Other';
+    byType[t] = byType[t] || { sess: 0, nu: 0, conv: 0 };
+    byType[t].sess += u.s; byType[t].nu += u.nu; byType[t].conv += u.c;
+  });
 
-  // Hygiene
-  const issues = (D.utm_issues || []).filter(i => i.src === 'meta' || i.src === 'facebook' || i.src === 'fb' || i.src === 'instagram' || i.src === 'ig');
+  // Заміна таблиці на merged дані + класифікацію
+  $('metaTable').querySelector('tbody').innerHTML = merged.map(u => {
+    const cls = u.meta_class || { type: 'Other', cls: 'gray', current: false };
+    const srcCls = u.src === 'meta' ? 'blue' : u.src === 'facebook' ? 'red' : u.src === 'instagram' ? 'pink' : 'gray';
+    const medWarn = u.med !== 'cpc';
+    return `
+      <tr${cls.current ? ' style="background:rgba(6,214,160,.04);"' : ''}>
+        <td><span class="badge ${srcCls}">${u.src}</span> / ${medWarn ? `<span class="badge red" title="має бути cpc">${u.med}</span>` : `<span class="muted">${u.med}</span>`}</td>
+        <td class="mono" title="${u.camp}"><b>${u.camp.length > 48 ? u.camp.slice(0,48)+'…' : u.camp}</b>${u.variants > 1 ? ` <span class="muted" style="font-size:10px;" title="склеєно ${u.variants} варіантів URL-encoded">×${u.variants}</span>` : ''}<br><span class="badge ${cls.cls}">${cls.type}${cls.current ? ' · active' : ''}</span></td>
+        <td class="num"><b>${fmtN(u.s)}</b></td>
+        <td class="num">${fmtN(u.es)}</td>
+        <td class="num">${fmtN(u.nu)}</td>
+        <td class="num">${fmtN(u.c)}</td>
+        <td class="num">${fmtPct(u.br)}</td>
+        <td class="num">${fmtDur(u.asd)}</td>
+      </tr>`;
+  }).join('') || '<tr><td colspan="8" class="muted" style="text-align:center;padding:20px;">Немає Meta UTM-трафіку у GA4 за 90д</td></tr>';
+
+  // Hygiene — тільки Meta-related
+  const issues = (D.utm_issues || []).filter(i => ['meta', 'facebook', 'instagram', 'fb', 'ig'].includes(i.src));
   if (issues.length === 0) {
     $('metaHygiene').innerHTML = `<div class="notice success"><span class="ic">✓</span> Не знайдено помилок UTM в Meta за 90 днів.</div>`;
   } else {
-    $('metaHygiene').innerHTML = issues.map(i => `
-      <div class="issue-item ${i.issues.includes('wrong_meta_source') ? 'error' : 'warn'}">
-        <div>
-          <div class="issue-title">${i.src} / ${i.med} · ${i.camp.slice(0,60)}</div>
+    $('metaHygiene').innerHTML = issues.map(i => {
+      const errCls = i.issues.some(iss => iss.includes('wrong') || iss.includes('macro')) ? 'error' : 'warn';
+      return `
+      <div class="issue-item ${errCls}">
+        <div style="flex:1;">
+          <div class="issue-title">${i.src} / ${i.med} · ${(i.camp || '').slice(0,60)}${i.variants > 1 ? ` <span class="muted" style="font-size:10px;">×${i.variants}</span>` : ''}</div>
           <div class="issue-body">
-            ${i.issues.map(iss => `<span class="badge ${iss.includes('wrong') ? 'red' : 'amber'}">${iss}</span>`).join(' ')}
-            · ${fmtN(i.s)} сесій · ${fmtN(i.c)} конв
+            ${i.issues.map(iss => `<span class="badge ${iss.includes('wrong') || iss.includes('macro') ? 'red' : 'amber'}">${iss}</span>`).join(' ')}
+            · <b>${fmtN(i.s)}</b> сесій · ${fmtN(i.c)} конв
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 }
 
@@ -1369,11 +1384,12 @@ function renderUtm() {
       cutout: '60%' },
   });
 
-  // Campaigns table
-  $('utmCampTable').querySelector('tbody').innerHTML = utm.slice().sort((a,b)=>b.s-a.s).slice(0, 50).map(u => `
+  // Campaigns table — використовуємо merged щоб URL-encoded дублі не плодились
+  const utmForTable = (D.ga4.utm_merged || utm).slice().sort((a,b)=>b.s-a.s).slice(0, 50);
+  $('utmCampTable').querySelector('tbody').innerHTML = utmForTable.map(u => `
     <tr>
       <td><b>${u.src}</b> / <span class="muted">${u.med}</span></td>
-      <td class="mono" title="${u.camp}">${u.camp.length > 60 ? u.camp.slice(0,60)+'…' : u.camp}</td>
+      <td class="mono" title="${u.camp}">${u.camp.length > 60 ? u.camp.slice(0,60)+'…' : u.camp}${u.variants && u.variants > 1 ? ` <span class="muted" style="font-size:10px;" title="склеєно ${u.variants} URL-encoded варіантів">×${u.variants}</span>` : ''}</td>
       <td class="num">${fmtN(u.s)}</td>
       <td class="num">${fmtN(u.nu)}</td>
       <td class="num">${fmtN(u.c)}</td>
@@ -1381,19 +1397,22 @@ function renderUtm() {
       <td class="num">${u.s ? fmtPct(u.c/u.s) : '—'}</td>
     </tr>`).join('');
 
-  // Issues
+  // Issues — склеєно по unique issue key, показуємо variants і totals
   $('utmIssues').innerHTML = D.utm_issues.length === 0 ? `
     <div class="notice success"><span class="ic">✓</span> Не знайдено UTM помилок.</div>
-  ` : D.utm_issues.map(i => `
-    <div class="issue-item ${i.issues.includes('wrong_meta_source') || i.issues.includes('tiktok_wrong_macro') ? 'error' : 'warn'}">
-      <div>
-        <div class="issue-title">${i.src} / ${i.med} · <span class="mono">${i.camp.slice(0,80)}</span></div>
+  ` : D.utm_issues.map(i => {
+    const errCls = i.issues.some(iss => iss.includes('wrong') || iss.includes('macro')) ? 'error' : 'warn';
+    return `
+    <div class="issue-item ${errCls}">
+      <div style="flex:1;">
+        <div class="issue-title">${i.src} / ${i.med} · <span class="mono">${(i.camp || '').slice(0,80)}</span>${i.variants > 1 ? ` <span class="muted" style="font-size:10px;">×${i.variants} варіантів склеєно</span>` : ''}</div>
         <div class="issue-body">
           ${i.issues.map(iss => `<span class="badge ${iss.includes('wrong') || iss.includes('macro') ? 'red' : 'amber'}">${iss}</span>`).join(' ')}
-          · ${fmtN(i.s)} сесій · ${fmtN(i.c)} конв
+          · <b>${fmtN(i.s)}</b> сесій · ${fmtN(i.c)} конв
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Reconcile
   const gd = D.gads.campaigns_30d.reduce((a,c)=>({clk:a.clk+c.clk, conv:a.conv+c.conv}), {clk:0,conv:0});

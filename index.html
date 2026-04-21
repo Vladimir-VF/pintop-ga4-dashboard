@@ -158,8 +158,8 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Топ-10 джерел трафіку
-            <span class="hint">GA4 UTM · impressions тут відсутні (живуть тільки в кабінетах), тому CPM — у Paid табі</span>
+          <div class="card-title">Топ-10 джерел трафіку (90 днів)
+            <span class="hint">GA4 UTM · URL-encoded дублі склеєні · CPM — в Paid табі (impressions тут немає)</span>
           </div>
           <div class="table-wrap">
             <table class="t" id="overviewSources">
@@ -429,16 +429,18 @@
       </div>
 
       <div class="notice warning" id="metaNotice">
-        <span class="ic">⚠</span> <b>Прямого API доступу до Meta Ads Manager поки немає.</b>
-        Аккаунт у Meta for Developers ще не схвалено. Дані нижче — з GA4 (utm_source=meta або utm_source=facebook), розшифровка кампаній з UTM.
-        <br><b>Що недоступно:</b> spend, impressions, CTR, CPC, CPL з кабінету. <b>Що є:</b> сесії, новi юзери, конверсії GA4 + назви кампаній з UTM.
+        <span class="ic">⚠</span> <b>Прямого API доступу до Meta Ads Manager немає.</b>
+        Аккаунт у Meta for Developers ще не схвалено. Всі числа нижче — з GA4 (utm_source=meta/facebook/instagram), розшифровка кампаній з UTM.
+        <br><b>Недоступно з кабінету:</b> spend, impressions, CTR, CPC, CPL. <b>Є з GA4:</b> сесії, нові юзери, конверсії (event count).
+        <br><b>Активні кампанії зараз:</b> Brands UA LeadGen 20.04, Creators UA LeadGen 18.04 V1 + 19.04. У GA4 йдуть з коректним `meta/cpc`. URL-encoded дублі (через `|` у назвах) автоматично склеєні в таблиці нижче.
+        <br><b>Унікальна проблема в історії:</b> частина старих запусків (2,700+ сесій) має `utm_medium=paid_social` замість `cpc` — адмінка pin.top такі сесії класифікує як Unknown (стандарт PT-11275 вимагає `cpc`).
       </div>
 
       <div class="grid grid-4 section" id="kpiMeta"></div>
 
       <div class="card section">
-        <div class="card-title">Кампанії Meta (з GA4 utm)
-          <span class="hint">фільтр source IN (meta, facebook)</span>
+        <div class="card-title">Кампанії Meta (з GA4 utm, 90d)
+          <span class="hint">склеєно URL-encoded дублі · підсвічено активні зараз · source IN (meta, facebook, instagram)</span>
         </div>
         <div class="table-wrap">
           <table class="t" id="metaTable">
