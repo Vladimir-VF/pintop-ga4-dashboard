@@ -391,6 +391,88 @@ button {
   color: var(--text-primary);
 }
 
+/* ============================================================
+   MULTI-SELECT DROPDOWN
+   ============================================================ */
+.filter-chip.multi { position: relative; cursor: default; padding: 3px 4px 3px 12px; }
+.multi-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.multi-btn:hover { background: var(--surface-hover); }
+.multi-btn .caret { font-size: 10px; color: var(--text-muted); }
+.multi-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--surface-2);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  min-width: 240px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.multi-actions {
+  display: flex;
+  gap: 4px;
+  padding: 2px 0 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.multi-actions button {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.multi-actions button:hover { background: var(--green-soft); color: var(--green); }
+.multi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.multi-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.multi-opt:hover { background: var(--surface-hover); color: var(--text-primary); }
+.multi-opt input { cursor: pointer; accent-color: var(--green); margin: 0; }
+.multi-opt .multi-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.multi-opt .multi-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .filter-date {
   display: flex;
   align-items: center;

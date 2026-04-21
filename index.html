@@ -75,11 +75,18 @@
       <span>до</span>
       <input type="date" id="dateTo">
     </div>
-    <div class="filter-chip">
-      <span class="muted">Канал:</span>
-      <select id="chFilter">
-        <option value="">Всі канали</option>
-      </select>
+    <div class="filter-chip multi" id="chFilterWrap">
+      <span class="muted">Канали:</span>
+      <button id="chFilterBtn" class="multi-btn">Всі канали <span class="muted" id="chFilterBtnCount"></span> <span class="caret">▾</span></button>
+      <div class="multi-dropdown" id="chFilterDropdown" style="display:none;">
+        <div class="multi-actions">
+          <button data-ch-action="all">Вибрати всі</button>
+          <button data-ch-action="none">Зняти все</button>
+          <button data-ch-action="paid">Тільки paid</button>
+          <button data-ch-action="organic">Тільки organic</button>
+        </div>
+        <div class="multi-list" id="chFilterList"></div>
+      </div>
     </div>
     <div class="filter-period-indicator" id="periodIndicator"></div>
   </div>

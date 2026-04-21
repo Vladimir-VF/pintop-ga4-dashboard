@@ -137,9 +137,34 @@ const today = (() => {
 
 const state = {
   from: null, to: null, prevFrom: null, prevTo: null, period: '30',
-  channel: '', scope: 'pintop', gscPeriod: '28d',
+  channels: null, // Set of channel names; null = all selected
+  scope: 'pintop', gscPeriod: '28d',
   gadsFilter: 'active', ttFilter: 'active',
 };
+
+// Канали що підпадають під paid / organic
+const PAID_CHANNELS = new Set(['Paid Search', 'Paid Social', 'Paid Video', 'Paid Other', 'Display', 'Cross-network']);
+const ORGANIC_CHANNELS = new Set(['Organic Search', 'Organic Social', 'Organic Video', 'Organic Shopping', 'Direct', 'Referral', 'Email']);
+
+function chIsSelected(ch) {
+  if (!state.channels) return true;
+  return state.channels.has(ch);
+}
+// UTM → channel mapping
+function utmToChannel(src, med) {
+  const s = (src || '').toLowerCase();
+  const m = (med || '').toLowerCase();
+  if (m === 'cpc' || m === 'paid' || m === 'ppc') {
+    if (s === 'tiktok' || s === 'meta' || s === 'facebook' || s === 'instagram') return 'Paid Social';
+    if (s === 'google' || s === 'bing') return 'Paid Search';
+    return 'Paid Other';
+  }
+  if (m === 'organic') return s.includes('google') || s.includes('bing') ? 'Organic Search' : 'Organic Social';
+  if (m === 'referral') return 'Referral';
+  if (m === 'email') return 'Email';
+  if (s === '(direct)' || m === '(none)' || (s === '' && m === '')) return 'Direct';
+  return 'Referral';
+}
 
 function setPeriodPreset(p) {
   state.period = p;
@@ -315,8 +340,8 @@ function renderOverview() {
     },
   });
 
-  // Channels donut + supporting table
-  const chData = channels.filter(c => c.s > 0).sort((a,b) => b.s - a.s);
+  // Channels donut + supporting table (з фільтром)
+  const chData = channels.filter(c => c.s > 0 && chIsSelected(c.ch)).sort((a,b) => b.s - a.s);
   const totChSess = chData.reduce((a,c)=>a+c.s,0);
   destroy('overviewChannels');
   charts.overviewChannels = new Chart($('overviewChannels'), {
@@ -367,8 +392,10 @@ function renderOverview() {
     },
   });
 
-  // Top sources
-  const utmSorted = D.ga4.utm.slice().sort((a,b) => b.s - a.s).slice(0, 12);
+  // Top sources (з фільтром по каналу)
+  const utmSorted = D.ga4.utm
+    .filter(u => chIsSelected(utmToChannel(u.src, u.med)))
+    .sort((a,b) => b.s - a.s).slice(0, 12);
   $('overviewSources').querySelector('tbody').innerHTML = utmSorted.map(u => `
     <tr>
       <td><b>${u.src}</b> / ${u.med}</td>
@@ -437,7 +464,17 @@ function renderOverview() {
     ? `<b>Річний YoY:</b> сумарно ${fmtN(totalThis)} сесій цього року vs ${fmtN(totalLast)} минулого — <b>${yoyGrow > 0 ? '+' : ''}${yoyGrow}%</b>.`
     : `<b>Минулого року</b> даних мало — порівняння неповне.`;
 
-  $('overviewSubtitle').textContent = `Період ${fmtDate(dateKey(state.from))} → ${fmtDate(dateKey(state.to))} · GA4 scope: pin.top тільки`;
+  const chLabel = (!state.channels || state.channels.size === allChCount())
+    ? 'всі канали'
+    : `канали: ${Array.from(state.channels).slice(0, 3).join(', ')}${state.channels.size > 3 ? `… (${state.channels.size})` : ''}`;
+  $('overviewSubtitle').textContent = `Період ${fmtDate(dateKey(state.from))} → ${fmtDate(dateKey(state.to))} · GA4 scope: pin.top · ${chLabel}`;
+}
+
+function allChCount() {
+  const set = new Set();
+  D.ga4.channels_30d.forEach(c => set.add(c.ch));
+  D.ga4.channels_90d.forEach(c => set.add(c.ch));
+  return set.size;
 }
 
 function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
@@ -1215,7 +1252,7 @@ function renderMeta() {
 // ============================================================
 
 function renderUtm() {
-  const utm = D.ga4.utm;
+  const utm = D.ga4.utm.filter(u => chIsSelected(utmToChannel(u.src, u.med)));
   const totalSess = utm.reduce((a,u)=>a+u.s,0);
   const totalConv = utm.reduce((a,u)=>a+u.c,0);
   const cpc = utm.filter(u => u.med === 'cpc').reduce((a,u)=>a+u.s,0);
@@ -1916,10 +1953,84 @@ function initApp() {
     if ($('dateFrom').value && $('dateTo').value) setCustom($('dateFrom').value, $('dateTo').value);
   });
 
-  // Channel filter
-  const ch30 = D.ga4.channels_30d;
-  $('chFilter').innerHTML = '<option value="">Всі канали</option>' + ch30.map(c => `<option value="${c.ch}">${c.ch}</option>`).join('');
-  $('chFilter').addEventListener('change', () => { state.channel = $('chFilter').value; renderAll(); });
+  // Multi-select channels filter
+  const allChNames = (() => {
+    // Use 90d як широкий пул
+    const set = new Set();
+    D.ga4.channels_30d.forEach(c => set.add(c.ch));
+    D.ga4.channels_90d.forEach(c => set.add(c.ch));
+    return Array.from(set).filter(c => c).sort();
+  })();
+  // Init: всі обрані (null = all)
+  state.channels = null;
+
+  function rebuildChList() {
+    const chMap = {};
+    D.ga4.channels_30d.forEach(c => { chMap[c.ch] = c.s; });
+    $('chFilterList').innerHTML = allChNames.map(ch => {
+      const checked = !state.channels || state.channels.has(ch);
+      const color = CHANNEL_COLORS[ch] || '#888';
+      return `
+        <label class="multi-opt">
+          <input type="checkbox" data-ch="${ch}" ${checked ? 'checked' : ''}>
+          <span class="multi-dot" style="background:${color}"></span>
+          <span>${ch}</span>
+          <span class="multi-count">${fmtN(chMap[ch] || 0)}</span>
+        </label>`;
+    }).join('');
+    // Bind
+    $('chFilterList').querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (!state.channels) state.channels = new Set(allChNames);
+        if (cb.checked) state.channels.add(cb.dataset.ch);
+        else state.channels.delete(cb.dataset.ch);
+        if (state.channels.size === allChNames.length) state.channels = null;
+        updateChBtn();
+        renderAll();
+      });
+    });
+  }
+
+  function updateChBtn() {
+    const btnLbl = $('chFilterBtn');
+    const cnt = $('chFilterBtnCount');
+    if (!state.channels || state.channels.size === allChNames.length) {
+      btnLbl.firstChild.textContent = 'Всі канали ';
+      cnt.textContent = `(${allChNames.length})`;
+    } else if (state.channels.size === 0) {
+      btnLbl.firstChild.textContent = 'Нічого не обрано ';
+      cnt.textContent = '';
+    } else {
+      btnLbl.firstChild.textContent = `Обрано: `;
+      cnt.textContent = `${state.channels.size} / ${allChNames.length}`;
+    }
+  }
+
+  // Toggle dropdown
+  $('chFilterBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    const dd = $('chFilterDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  });
+  document.addEventListener('click', e => {
+    if (!$('chFilterWrap').contains(e.target)) $('chFilterDropdown').style.display = 'none';
+  });
+
+  // Quick actions
+  document.querySelectorAll('[data-ch-action]').forEach(b => {
+    b.addEventListener('click', () => {
+      const act = b.dataset.chAction;
+      if (act === 'all') state.channels = null;
+      else if (act === 'none') state.channels = new Set();
+      else if (act === 'paid') state.channels = new Set(allChNames.filter(c => PAID_CHANNELS.has(c)));
+      else if (act === 'organic') state.channels = new Set(allChNames.filter(c => ORGANIC_CHANNELS.has(c)));
+      rebuildChList();
+      updateChBtn();
+      renderAll();
+    });
+  });
+  rebuildChList();
+  updateChBtn();
 
   // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
