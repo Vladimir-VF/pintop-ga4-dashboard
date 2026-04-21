@@ -788,19 +788,7 @@
 
 </div>
 
-<script>
-// Cache-busting: завантажуємо data.js і dashboard.js з унікальним query щоб обійти HTTP cache
-(function() {
-  const v = Date.now();
-  const d1 = document.createElement('script');
-  d1.src = './data.js?v=' + v;
-  d1.onload = () => {
-    const d2 = document.createElement('script');
-    d2.src = './dashboard.js?v=' + v;
-    document.body.appendChild(d2);
-  };
-  document.body.appendChild(d1);
-})();
-</script>
+<script src="./data.js?v=2.9"></script>
+<script src="./dashboard.js?v=2.9"></script>
 </body>
 </html>

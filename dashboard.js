@@ -4,8 +4,31 @@
 
 (function() {
 
+console.log('[pintop] dashboard.js v2.9 loaded, checking data...');
 const D = window.PINTOP_DATA;
-if (!D) { console.error('PINTOP_DATA not loaded'); return; }
+if (!D) {
+  console.error('[pintop] PINTOP_DATA not loaded — показую fallback error');
+  document.addEventListener('DOMContentLoaded', () => {
+    const gate = document.getElementById('gate');
+    if (gate) gate.style.display = 'none';
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
+    document.body.innerHTML = `
+      <div style="padding:60px 40px;max-width:600px;margin:80px auto;background:#141414;border:1px solid rgba(248,113,113,.3);border-radius:16px;color:#fff;font-family:Inter,sans-serif;">
+        <h2 style="color:#F87171;margin-bottom:12px;">⚠ Помилка завантаження даних</h2>
+        <p style="color:rgba(255,255,255,.7);line-height:1.6;">data.js не завантажився. Це може бути через кеш або помилку мережі.</p>
+        <button onclick="location.reload(true)" style="margin-top:20px;padding:12px 20px;background:linear-gradient(90deg,#06D6A0,#3B82F6);color:#0a0a0a;font-weight:700;border:none;border-radius:8px;cursor:pointer;">🔄 Перезавантажити (skip cache)</button>
+      </div>`;
+  });
+  return;
+}
+console.log('[pintop] data ready:', {
+  ga4_daily: D.ga4?.daily?.length,
+  gads_camps: D.gads?.campaigns_30d?.length,
+  tt_camps: D.tiktok?.campaigns_30d?.length,
+  utm_merged: D.ga4?.utm_merged?.length,
+  build: D._build?.generated_at,
+});
 
 // ============================================================
 // PASSWORD GATE (SHA-256)
@@ -41,16 +64,28 @@ function runLoader(done) {
 }
 
 function unlock({ animate } = { animate: true }) {
+  console.log('[pintop] unlock() animate=', animate);
   document.getElementById('gate').style.display = 'none';
   if (animate) {
     runLoader(() => {
+      console.log('[pintop] loader done, showing app');
       document.getElementById('app').style.display = 'block';
-      initApp();
+      try { initApp(); } catch (e) { console.error('[pintop] initApp error:', e); showInitError(e); }
     });
   } else {
     document.getElementById('app').style.display = 'block';
-    initApp();
+    try { initApp(); } catch (e) { console.error('[pintop] initApp error:', e); showInitError(e); }
   }
+}
+
+function showInitError(err) {
+  const main = document.querySelector('.main');
+  if (!main) return;
+  main.innerHTML = `
+    <div class="notice danger" style="margin:40px 0;">
+      <b>⚠ Помилка ініціалізації:</b> ${(err && err.message) || err}<br>
+      <button onclick="location.reload(true)" style="margin-top:10px;padding:8px 14px;background:var(--green);color:#0a0a0a;font-weight:700;border:none;border-radius:6px;cursor:pointer;">🔄 Перезавантажити</button>
+    </div>`;
 }
 
 async function tryGate() {
