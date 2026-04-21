@@ -138,6 +138,7 @@ const today = (() => {
 const state = {
   from: null, to: null, prevFrom: null, prevTo: null, period: '30',
   channel: '', scope: 'pintop', gscPeriod: '28d',
+  gadsFilter: 'active', ttFilter: 'active',
 };
 
 function setPeriodPreset(p) {
@@ -229,9 +230,9 @@ function aggTTDaily(from, to) {
 // DELTA / KPI rendering
 // ============================================================
 
-function delta(cur, prv, invert = false) {
-  if (!prv && !cur) return { txt: '—', cls: 'neutral', arr: '·' };
-  if (!prv) return { txt: 'нове', cls: 'up', arr: '↑' };
+function delta(cur, prv, invert = false, prevLabel = '') {
+  if (!prv && !cur) return { txt: '—', cls: 'neutral', arr: '·', tooltip: '' };
+  if (!prv) return { txt: 'нове', cls: 'up', arr: '↑', tooltip: 'Не було даних у попередньому періоді' };
   const d = (cur - prv) / prv * 100;
   const positive = (invert ? -d : d) > 0.5;
   const negative = (invert ? -d : d) < -0.5;
@@ -239,15 +240,16 @@ function delta(cur, prv, invert = false) {
     txt: Math.abs(d).toFixed(1) + '%',
     cls: positive ? 'up' : negative ? 'down' : 'neutral',
     arr: d > 0 ? '↑' : d < 0 ? '↓' : '·',
+    tooltip: prevLabel ? `vs попередній період (${prevLabel}): ${fmtN(prv)}` : '',
   };
 }
 
 function kpiCard({ color, label, val, unit, sub, dlt }) {
   return `
-    <div class="kpi ${color || 'green'}">
+    <div class="kpi ${color || 'green'}" ${dlt && dlt.tooltip ? `title="${dlt.tooltip}"` : ''}>
       <div class="kpi-label">${label}</div>
       <div class="kpi-val">${val}${unit ? `<span class="kpi-unit">${unit}</span>` : ''}</div>
-      ${dlt ? `<div class="kpi-delta ${dlt.cls}"><span class="ic">${dlt.arr}</span>${dlt.txt} <span class="muted" style="font-weight:500;margin-left:4px;">vs попер.</span></div>` : ''}
+      ${dlt ? `<div class="kpi-delta ${dlt.cls}" ${dlt.tooltip ? `title="${dlt.tooltip}"` : ''}><span class="ic">${dlt.arr}</span>${dlt.txt} <span class="muted" style="font-weight:500;margin-left:4px;">vs попер. період</span></div>` : ''}
       ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
     </div>`;
 }
@@ -270,14 +272,18 @@ function renderOverview() {
   const blendedCpl = paidConv ? paidSpend / paidConv : 0;
   const gscClicks28 = D.gsc.queries_28d.reduce((a,q)=>a+q.clk,0);
 
+  // Period labels for delta clarity
+  const prevLabel = `${fmtDate(dateKey(state.prevFrom))} → ${fmtDate(dateKey(state.prevTo))}`;
+  const periodLen = Math.round((state.to - state.from)/86400000) + 1;
+
   $('kpiOverview').innerHTML = [
-    kpiCard({ color: 'green', label: 'Сесії', val: fmtN(cur.sum.s), dlt: delta(cur.sum.s, prv.sum.s) }),
-    kpiCard({ color: 'purple', label: 'Активні юзери', val: fmtN(cur.sum.u), dlt: delta(cur.sum.u, prv.sum.u) }),
-    kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(cur.sum.nu), dlt: delta(cur.sum.nu, prv.sum.nu) }),
-    kpiCard({ color: 'blue', label: 'Конв. (event count)', val: fmtN(cur.sum.c), dlt: delta(cur.sum.c, prv.sum.c) }),
-    kpiCard({ color: 'amber', label: 'Paid spend', val: fmtUsd(paidSpend), unit: 'USD', sub: 'Google Ads + TikTok' }),
-    kpiCard({ color: 'teal', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: paidConv ? `${fmtN(paidConv)} конв` : 'немає конв' }),
-    kpiCard({ color: 'green', label: 'Organic clicks (GSC)', val: fmtN(gscClicks28), sub: '28 днів, GSC' }),
+    kpiCard({ color: 'green', label: 'Сесії', val: fmtN(cur.sum.s), dlt: delta(cur.sum.s, prv.sum.s, false, prevLabel) }),
+    kpiCard({ color: 'purple', label: 'Активні юзери', val: fmtN(cur.sum.u), dlt: delta(cur.sum.u, prv.sum.u, false, prevLabel) }),
+    kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(cur.sum.nu), dlt: delta(cur.sum.nu, prv.sum.nu, false, prevLabel) }),
+    kpiCard({ color: 'blue', label: 'Конв. GA4 (event count)', val: fmtN(cur.sum.c), dlt: delta(cur.sum.c, prv.sum.c, false, prevLabel), sub: 'не унікальні users' }),
+    kpiCard({ color: 'amber', label: 'Paid spend', val: fmtUsd(paidSpend), unit: 'USD', sub: 'Google Ads + TikTok (кабінет)' }),
+    kpiCard({ color: 'teal', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: paidConv ? `${fmtN(paidConv)} конв з кабінетів` : 'немає конв' }),
+    kpiCard({ color: 'green', label: 'Organic clicks (GSC)', val: fmtN(gscClicks28), sub: 'останні 28 днів' }),
     kpiCard({ color: 'purple', label: 'Сесій / юзер', val: cur.sum.u ? (cur.sum.s/cur.sum.u).toFixed(2) : '—', sub: 'глибина залучення' }),
   ].join('');
 
@@ -309,8 +315,9 @@ function renderOverview() {
     },
   });
 
-  // Channels donut
+  // Channels donut + supporting table
   const chData = channels.filter(c => c.s > 0).sort((a,b) => b.s - a.s);
+  const totChSess = chData.reduce((a,c)=>a+c.s,0);
   destroy('overviewChannels');
   charts.overviewChannels = new Chart($('overviewChannels'), {
     type: 'doughnut',
@@ -324,23 +331,30 @@ function renderOverview() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { boxWidth: 8, padding: 8, font: { size: 11 } } } },
-      cutout: '62%',
+      plugins: { legend: { display: false } },
+      cutout: '65%',
     },
   });
+  $('overviewChannelsTable').querySelector('tbody').innerHTML = chData.map(c => `
+    <tr>
+      <td><span class="dot" style="background:${CHANNEL_COLORS[c.ch]||'#888'}"></span>${c.ch}</td>
+      <td class="num">${fmtN(c.s)}</td>
+      <td class="num"><b>${((c.s/totChSess)*100).toFixed(1)}%</b></td>
+    </tr>`).join('');
 
-  // Paid spend chart
+  // Paid spend chart — фільтр днів з витратами > 0
   const gd = aggGAdsDaily(state.from, state.to);
   const td = aggTTDaily(state.from, state.to);
-  const allDays = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
+  const allDaysRaw = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
+  const allDays = allDaysRaw.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) > 0.01);
   destroy('overviewPaidSpend');
   charts.overviewPaidSpend = new Chart($('overviewPaidSpend'), {
     type: 'bar',
     data: {
       labels: allDays.map(d => d.slice(4,6)+'.'+d.slice(6,8)),
       datasets: [
-        { label: 'Google Ads (USD)', data: allDays.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
-        { label: 'TikTok (USD)', data: allDays.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
+        { label: 'Google Ads', data: allDays.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
+        { label: 'TikTok', data: allDays.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
       ],
     },
     options: {
@@ -349,7 +363,7 @@ function renderOverview() {
         x: gridScale({ ticks: { maxTicksLimit: 14 } }),
         y: gridScale({ stacked: true, ticks: { callback: v => '$' + v } }),
       },
-      plugins: { legend: { position: 'top' } },
+      plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUsd(ctx.parsed.y)}` } } },
     },
   });
 
@@ -399,10 +413,10 @@ function renderOverview() {
   charts.overviewYoY = new Chart($('overviewYoY'), {
     type: 'bar',
     data: {
-      labels: months,
+      labels: months.map(m => 'міс ' + m),
       datasets: [
-        { label: 'Last year', data: months.map(m => yoyMap[m]['last_year'] || 0), backgroundColor: 'rgba(124,58,237,.4)' },
-        { label: 'This year', data: months.map(m => yoyMap[m]['this_year'] || 0), backgroundColor: '#06D6A0' },
+        { label: 'Минулий рік', data: months.map(m => yoyMap[m]['last_year'] || 0), backgroundColor: 'rgba(124,58,237,.55)' },
+        { label: 'Цей рік', data: months.map(m => yoyMap[m]['this_year'] || 0), backgroundColor: '#06D6A0' },
       ],
     },
     options: {
@@ -412,11 +426,24 @@ function renderOverview() {
     },
   });
 
+  // YoY summary
+  let totalThis = 0, totalLast = 0;
+  months.forEach(m => {
+    totalThis += yoyMap[m]['this_year'] || 0;
+    totalLast += yoyMap[m]['last_year'] || 0;
+  });
+  const yoyGrow = totalLast ? ((totalThis - totalLast) / totalLast * 100).toFixed(0) : 0;
+  $('yoySummary').innerHTML = totalLast
+    ? `<b>Річний YoY:</b> сумарно ${fmtN(totalThis)} сесій цього року vs ${fmtN(totalLast)} минулого — <b>${yoyGrow > 0 ? '+' : ''}${yoyGrow}%</b>.`
+    : `<b>Минулого року</b> даних мало — порівняння неповне.`;
+
   $('overviewSubtitle').textContent = `Період ${fmtDate(dateKey(state.from))} → ${fmtDate(dateKey(state.to))} · GA4 scope: pin.top тільки`;
 }
 
 function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
   const items = [];
+  const curLabel = `${fmtDate(dateKey(state.from))} → ${fmtDate(dateKey(state.to))}`;
+  const prvLabel = `${fmtDate(dateKey(state.prevFrom))} → ${fmtDate(dateKey(state.prevTo))}`;
 
   // Insight 1: Paid contribution
   const channels = pickChannelsForPeriod();
@@ -427,16 +454,16 @@ function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
   items.push({
     cls: paidShare > 5 ? 'good' : 'warn', ic: '💰',
     t1: 'Paid traffic share',
-    t2: `Платний трафік дав <b>${paidShare}%</b> сесій. Spend $${paidSpend.toFixed(0)} → ${paidConv} конверсій. CPL $${paidConv ? (paidSpend/paidConv).toFixed(2) : '—'}.`,
+    t2: `Платний трафік дав <b>${paidShare}%</b> сесій (${fmtN(paidSocial + paidSearch)} з ${fmtN(totalSess)}). Spend ${fmtUsd(paidSpend)} → ${fmtN(paidConv)} кабінетних конверсій. CPL ${paidConv ? fmtUsd(paidSpend/paidConv) : '—'}.`,
   });
 
-  // Insight 2: Growth vs previous period
+  // Insight 2: Growth vs previous period з конкретними датами
   const grow = prv.sum.s ? ((cur.sum.s - prv.sum.s)/prv.sum.s * 100).toFixed(1) : null;
   if (grow != null) {
     items.push({
       cls: grow > 0 ? 'good' : 'bad', ic: grow > 0 ? '📈' : '📉',
-      t1: 'Period over period',
-      t2: `Сесії <b>${grow > 0 ? '+' : ''}${grow}%</b> до попереднього періоду. Конверсії ${prv.sum.c ? (((cur.sum.c-prv.sum.c)/prv.sum.c*100).toFixed(1) + '%') : 'нові'}.`,
+      t1: `Порівняно з ${prvLabel}`,
+      t2: `Сесії: ${fmtN(cur.sum.s)} vs ${fmtN(prv.sum.s)} (<b>${grow > 0 ? '+' : ''}${grow}%</b>). Конверсії GA4 events: ${fmtN(cur.sum.c)} vs ${fmtN(prv.sum.c)} (<b>${prv.sum.c ? (((cur.sum.c-prv.sum.c)/prv.sum.c*100).toFixed(1) + '%') : '—'}</b>).`,
     });
   }
 
@@ -445,7 +472,7 @@ function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
   items.push({
     cls: nuShare > 70 ? 'warn' : 'good', ic: '🆕',
     t1: 'Якість аудиторії',
-    t2: `<b>${nuShare}%</b> — частка нових юзерів. ${nuShare > 80 ? 'Дуже високий — холодний трафік, низька повторна вовлеченість.' : nuShare > 60 ? 'Норма для активних запусків.' : 'Багато повертаються — продукт тримає.'}`,
+    t2: `<b>${nuShare}%</b> — частка нових юзерів (${fmtN(cur.sum.nu)} з ${fmtN(cur.sum.u)} активних). ${nuShare > 80 ? 'Дуже високий — холодний трафік, низька повторна вовлеченість. Треба нарощувати retention (email, onboarding).' : nuShare > 60 ? 'Норма для активних запусків — performance-трафік домінує.' : 'Багато повертаються — продукт тримає юзерів.'}`,
   });
 
   return items.map(it => `
@@ -468,13 +495,16 @@ function renderPaid() {
   const blendedCpl = totalConv ? totalSpend / totalConv : 0;
 
   $('kpiPaid').innerHTML = [
-    kpiCard({ color: 'green', label: 'Total paid spend', val: fmtUsd(totalSpend), unit: 'USD', sub: 'Google + TikTok' }),
-    kpiCard({ color: 'blue', label: 'Total clicks', val: fmtN(totalClk) }),
-    kpiCard({ color: 'amber', label: 'Total conversions', val: fmtN(totalConv) }),
-    kpiCard({ color: 'pink', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: blendedCpl ? `${fmtN(totalConv)} конв` : '' }),
+    kpiCard({ color: 'green', label: 'Total paid spend', val: fmtUsd(totalSpend), unit: 'USD', sub: 'Google + TikTok за ' + Math.round((state.to - state.from)/86400000+1) + ' днів' }),
+    kpiCard({ color: 'blue', label: 'Total clicks', val: fmtN(totalClk), sub: 'клікі в кабінетах' }),
+    kpiCard({ color: 'amber', label: 'Конверсії (cabinet)', val: fmtN(totalConv), sub: 'реєстрації з пікселів' }),
+    kpiCard({ color: 'pink', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: blendedCpl ? `${fmtN(totalConv)} конв з кабінетів` : '' }),
   ].join('');
 
-  // Paid cards
+  // Paid cards — однакова висота, по 8 metrics в кожній
+  const metaSess90 = D.meta.utm_90d.reduce((a,r)=>a+r.s,0);
+  const metaNu90 = D.meta.utm_90d.reduce((a,r)=>a+r.nu,0);
+  const metaConv90 = D.meta.utm_90d.reduce((a,r)=>a+r.c,0);
   $('paidCards').innerHTML = `
     <div class="paid-card google">
       <div class="paid-head"><div class="paid-logo">G</div>
@@ -482,15 +512,16 @@ function renderPaid() {
         <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
       <div class="paid-metric-row">
-        <div class="paid-metric"><div class="l">Spend</div><div class="v">${fmtUsd(gd.sum.spend_usd)} <small>(${fmtAed(gd.sum.spend_aed)})</small></div></div>
+        <div class="paid-metric"><div class="l">Spend USD</div><div class="v">${fmtUsd(gd.sum.spend_usd)}</div></div>
+        <div class="paid-metric"><div class="l">Spend AED</div><div class="v">${fmtAed(gd.sum.spend_aed)}</div></div>
         <div class="paid-metric"><div class="l">Imp</div><div class="v">${fmtN(gd.sum.imp)}</div></div>
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(gd.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${gd.sum.imp ? fmtPct(gd.sum.clk/gd.sum.imp) : '—'}</div></div>
         <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${gd.sum.clk ? fmtUsd(gd.sum.spend_usd/gd.sum.clk) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">Conv</div><div class="v">${fmtN(gd.sum.conv)}</div></div>
-        <div class="paid-metric"><div class="l">CPA</div><div class="v">${gd.sum.conv ? fmtUsd(gd.sum.spend_usd/gd.sum.conv) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">% spend</div><div class="v">${totalSpend ? ((gd.sum.spend_usd/totalSpend)*100).toFixed(0)+'%' : '—'}</div></div>
+        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtN(gd.sum.conv)}</div></div>
+        <div class="paid-metric"><div class="l">CPA USD</div><div class="v">${gd.sum.conv ? fmtUsd(gd.sum.spend_usd/gd.sum.conv) : '—'}</div></div>
       </div>
+      <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((gd.sum.spend_usd/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
     </div>
     <div class="paid-card tiktok">
       <div class="paid-head"><div class="paid-logo">♪</div>
@@ -498,49 +529,53 @@ function renderPaid() {
         <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
       <div class="paid-metric-row">
-        <div class="paid-metric"><div class="l">Spend</div><div class="v">${fmtUsd(td.sum.spend)}</div></div>
+        <div class="paid-metric"><div class="l">Spend USD</div><div class="v">${fmtUsd(td.sum.spend)}</div></div>
+        <div class="paid-metric"><div class="l">Avg/день</div><div class="v">${fmtUsd(td.sum.spend / Math.max(1, Object.keys(td.byDay).length))}</div></div>
         <div class="paid-metric"><div class="l">Imp</div><div class="v">${fmtN(td.sum.imp)}</div></div>
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(td.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${td.sum.imp ? fmtPct(td.sum.clk/td.sum.imp) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">CPC</div><div class="v">${td.sum.clk ? fmtUsd(td.sum.spend/td.sum.clk) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">Conv</div><div class="v">${fmtN(td.sum.conv)}</div></div>
-        <div class="paid-metric"><div class="l">CPL</div><div class="v">${td.sum.conv ? fmtUsd(td.sum.spend/td.sum.conv) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">% spend</div><div class="v">${totalSpend ? ((td.sum.spend/totalSpend)*100).toFixed(0)+'%' : '—'}</div></div>
+        <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${td.sum.clk ? fmtUsd(td.sum.spend/td.sum.clk) : '—'}</div></div>
+        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtN(td.sum.conv)}</div></div>
+        <div class="paid-metric"><div class="l">CPL USD</div><div class="v">${td.sum.conv ? fmtUsd(td.sum.spend/td.sum.conv) : '—'}</div></div>
       </div>
+      <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((td.sum.spend/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
     </div>
     <div class="paid-card meta">
       <div class="paid-head"><div class="paid-logo">M</div>
-        <div><div class="paid-name">Meta Ads</div><div class="paid-sub">GA4 only · API pending</div></div>
+        <div><div class="paid-name">Meta Ads</div><div class="paid-sub">GA4 only · 90 днів · API не доступний</div></div>
         <span class="status-pill limited" style="margin-left:auto;">limited</span>
       </div>
       <div class="paid-metric-row">
-        <div class="paid-metric"><div class="l">Spend</div><div class="v">—</div></div>
+        <div class="paid-metric"><div class="l">Spend USD</div><div class="v">—</div></div>
+        <div class="paid-metric"><div class="l">CPC</div><div class="v">—</div></div>
         <div class="paid-metric"><div class="l">Imp</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">Clicks</div><div class="v">—</div></div>
+        <div class="paid-metric"><div class="l">Clicks (cab)</div><div class="v">—</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">Сесії GA4</div><div class="v">${fmtN(D.meta.utm_90d.reduce((a,r)=>a+r.s,0))}</div></div>
-        <div class="paid-metric"><div class="l">Нові</div><div class="v">${fmtN(D.meta.utm_90d.reduce((a,r)=>a+r.nu,0))}</div></div>
-        <div class="paid-metric"><div class="l">Conv GA4</div><div class="v">${fmtN(D.meta.utm_90d.reduce((a,r)=>a+r.c,0))}</div></div>
-        <div class="paid-metric"><div class="l">Status</div><div class="v" style="font-size:13px;color:var(--amber);">API ↩</div></div>
+        <div class="paid-metric"><div class="l">Сесії GA4</div><div class="v">${fmtN(metaSess90)}</div></div>
+        <div class="paid-metric"><div class="l">Нові юзери</div><div class="v">${fmtN(metaNu90)}</div></div>
+        <div class="paid-metric"><div class="l">Conv GA4 events</div><div class="v">${fmtN(metaConv90)}</div></div>
       </div>
+      <div class="muted" style="font-size:11px;margin-top:6px;">⚠ Meta for Developers не дає developer аккаунту — кабінетні дані недоступні. GA4 conv = event count, не unique users.</div>
     </div>
   `;
 
-  // Spend chart
-  const days = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
+  // Spend chart — приховую дні з 0 spend
+  const allDaysRaw2 = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
+  const days = allDaysRaw2.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) > 0.01);
   destroy('paidSpendChart');
   charts.paidSpendChart = new Chart($('paidSpendChart'), {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: days.map(d => d.slice(4,6)+'.'+d.slice(6,8)),
       datasets: [
-        { label: 'Google Ads', data: days.map(d => (gd.byDay[d]||{}).spend_usd || 0), borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,.15)', tension: .3, fill: true },
-        { label: 'TikTok', data: days.map(d => (td.byDay[d]||{}).spend || 0), borderColor: '#BE1C9A', backgroundColor: 'rgba(190,28,154,.15)', tension: .3, fill: true },
+        { label: 'Google Ads', data: days.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
+        { label: 'TikTok', data: days.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
       ],
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: { x: gridScale(), y: gridScale({ ticks: { callback: v => '$' + v } }) },
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      scales: { x: gridScale({ stacked: true, ticks: { maxTicksLimit: 14 } }), y: gridScale({ stacked: true, ticks: { callback: v => '$' + v } }) },
+      plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUsd(ctx.parsed.y)}` } } },
     },
   });
 
@@ -620,7 +655,10 @@ function renderPaid() {
 // ============================================================
 
 function renderGads() {
-  const c30 = D.gads.campaigns_30d;
+  const allCamps = D.gads.campaigns_30d;
+  const c30 = state.gadsFilter === 'active'
+    ? allCamps.filter(c => c.status === 'ENABLED' || c.cost_usd > 0)
+    : allCamps;
   const totalSpendUsd = c30.reduce((a,c)=>a+c.cost_usd,0);
   const totalSpendAed = c30.reduce((a,c)=>a+c.cost_aed,0);
   const totalImp = c30.reduce((a,c)=>a+c.imp,0);
@@ -630,12 +668,13 @@ function renderGads() {
   const ctr = totalImp ? totalClk/totalImp : 0;
   const cpcUsd = totalClk ? totalSpendUsd/totalClk : 0;
 
+  const activeCount = allCamps.filter(c => c.status === 'ENABLED').length;
   $('kpiGads').innerHTML = [
     kpiCard({ color: 'green', label: 'Spend USD', val: fmtUsd(totalSpendUsd), sub: fmtAed(totalSpendAed) }),
-    kpiCard({ color: 'purple', label: 'Кампаній', val: c30.filter(c=>c.cost_usd>0).length, sub: `${c30.length} всього` }),
+    kpiCard({ color: 'purple', label: 'Активних', val: activeCount, sub: `${allCamps.length} всього в акаунті` }),
     kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
     kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
-    kpiCard({ color: 'pink', label: 'Avg CPC', val: fmtUsd(cpcUsd), sub: 'USD' }),
+    kpiCard({ color: 'pink', label: 'Avg CPC USD', val: fmtUsd(cpcUsd) }),
     kpiCard({ color: 'teal', label: 'Avg Imp Share', val: fmtPct(avgIs), sub: 'Search кампанії' }),
   ].join('');
 
@@ -742,28 +781,53 @@ function renderGads() {
     });
   });
 
-  // Top keywords
-  $('gadsKwTable').querySelector('tbody').innerHTML = D.gads.keywords_30d.slice(0, 50).map(k => `
+  // Top keywords (50, full width with cpc/cpa)
+  const kws = D.gads.keywords_30d.slice(0, 50);
+  $('gadsKwTable').querySelector('tbody').innerHTML = kws.map(k => `
     <tr>
-      <td class="mono" title="${k.kw}">${k.kw.length > 35 ? k.kw.slice(0,35)+'…' : k.kw}</td>
+      <td class="mono" title="${k.kw}"><b>${k.kw}</b></td>
       <td><span class="badge gray">${k.mt}</span></td>
+      <td class="muted" title="${k.camp}">${k.camp.length > 25 ? k.camp.slice(0,25)+'…' : k.camp}</td>
       <td class="num">${fmtUsd(k.cost_usd)}</td>
       <td class="num">${fmtN(k.imp)}</td>
       <td class="num">${fmtN(k.clk)}</td>
-      <td class="num">${fmtPct(k.ctr)}</td>
+      <td class="num"><span class="badge ${k.ctr > 0.05 ? 'green' : k.ctr > 0.02 ? 'amber' : 'red'}">${fmtPct(k.ctr)}</span></td>
+      <td class="num">${k.clk ? fmtUsd(k.cost_usd/k.clk) : '—'}</td>
       <td class="num">${fmtN(k.conv)}</td>
+      <td class="num">${k.conv ? fmtUsd(k.cost_usd/k.conv) : '—'}</td>
     </tr>`).join('');
 
-  // Top ads
-  $('gadsAdsTable').querySelector('tbody').innerHTML = D.gads.ads_30d.slice(0, 30).map(a => `
+  // Keyword insights
+  const topKwBySpend = kws.slice(0, 3);
+  const topKwByConv = kws.filter(k => k.conv > 5).sort((a,b)=>(a.cost_usd/a.conv)-(b.cost_usd/b.conv)).slice(0, 3);
+  const wasteKw = kws.filter(k => k.cost_usd > 10 && k.conv === 0).slice(0, 3);
+  $('gadsKwInsight').innerHTML = `
+    <b>📊 Інсайти по ключах:</b><br>
+    🏆 <b>Топ за обсягом spend:</b> ${topKwBySpend.map(k => `"${k.kw}" (${fmtUsd(k.cost_usd)})`).join(', ')}.
+    ${topKwByConv.length ? `<br>🎯 <b>Найдешевші конв:</b> ${topKwByConv.map(k => `"${k.kw}" (CPA ${fmtUsd(k.cost_usd/k.conv)}, ${k.conv} конв)`).join(', ')}. — масштабуй ці.` : ''}
+    ${wasteKw.length ? `<br>⛔ <b>Прокляті ключі (spend > $10, 0 conv):</b> ${wasteKw.map(k => `"${k.kw}" (${fmtUsd(k.cost_usd)})`).join(', ')}. Додай негативи або ріж.` : ''}
+  `;
+
+  // Top ads (30)
+  const ads = D.gads.ads_30d.slice(0, 30);
+  $('gadsAdsTable').querySelector('tbody').innerHTML = ads.map(a => `
     <tr>
-      <td title="${a.headline}">${a.headline.length > 45 ? a.headline.slice(0,45)+'…' : a.headline}</td>
-      <td class="muted" title="${a.camp}">${a.camp.length > 20 ? a.camp.slice(0,20)+'…' : a.camp}</td>
+      <td title="${a.headline}"><b>${a.headline}</b></td>
+      <td class="muted" title="${a.ag}">${a.ag.length > 22 ? a.ag.slice(0,22)+'…' : a.ag}</td>
+      <td class="muted" title="${a.camp}">${a.camp.length > 22 ? a.camp.slice(0,22)+'…' : a.camp}</td>
       <td class="num">${fmtUsd(a.cost_usd)}</td>
       <td class="num">${fmtN(a.imp)}</td>
       <td class="num">${fmtN(a.clk)}</td>
+      <td class="num">${fmtPct(a.ctr)}</td>
       <td class="num">${fmtN(a.conv)}</td>
+      <td class="num">${a.conv ? fmtUsd(a.cost_usd/a.conv) : '—'}</td>
     </tr>`).join('');
+
+  // Ad insights
+  const topAds = ads.filter(a => a.conv > 10).sort((a,b)=>(a.cost_usd/a.conv)-(b.cost_usd/b.conv)).slice(0, 3);
+  $('gadsAdsInsight').innerHTML = topAds.length ? `
+    <b>🎯 Топ-3 оголошення за CPA:</b> ${topAds.map(a => `"${a.headline.slice(0,40)}" (CPA ${fmtUsd(a.cost_usd/a.conv)}, ${a.conv} конв)`).join(' · ')}. Зроби ще варіації цих головних меседжів.
+  ` : '<b>📋 Розрахуй CPA по оголошенням</b> щоб виявити лідерів — поки конверсій замало для надійних висновків.';
 }
 
 // ============================================================
@@ -771,11 +835,22 @@ function renderGads() {
 // ============================================================
 
 function renderTikTok() {
-  const camps = D.tiktok.campaigns_30d || [];
-  const ads = D.tiktok.ads_30d || [];
-  const ags = D.tiktok.ad_groups_30d || [];
   const camplist = D.tiktok.campaigns_list || [];
   const adslist = D.tiktok.ads_list || [];
+  const ags = D.tiktok.ad_groups_30d || [];
+
+  // Active campaigns IDs
+  const activeCampIds = new Set(camplist.filter(c => c.status && c.status.includes('ENABLE')).map(c => c.id));
+
+  const allCamps = D.tiktok.campaigns_30d || [];
+  const allAds = D.tiktok.ads_30d || [];
+
+  const camps = state.ttFilter === 'active'
+    ? allCamps.filter(c => activeCampIds.has(String(c.campaign_id)) || c.spend > 0)
+    : allCamps;
+  const ads = state.ttFilter === 'active'
+    ? allAds.filter(a => a.spend > 0)
+    : allAds;
 
   const totalSpend = camps.reduce((a,c)=>a+c.spend,0);
   const totalImp = camps.reduce((a,c)=>a+c.imp,0);
@@ -784,50 +859,52 @@ function renderTikTok() {
   const ctr = totalImp ? totalClk/totalImp : 0;
   const cpc = totalClk ? totalSpend/totalClk : 0;
   const cpl = totalConv ? totalSpend/totalConv : 0;
-  const activeCamps = camplist.filter(c => c.status && c.status.includes('ENABLE')).length;
+  const activeCampsNum = camplist.filter(c => c.status && c.status.includes('ENABLE')).length;
 
   $('kpiTikTok').innerHTML = [
     kpiCard({ color: 'pink', label: 'Spend USD', val: fmtUsd(totalSpend), sub: '30 днів' }),
-    kpiCard({ color: 'green', label: 'Кампаній active', val: activeCamps, sub: `${camplist.length} всього` }),
+    kpiCard({ color: 'green', label: 'Активних', val: activeCampsNum, sub: `${camplist.length} всього в акаунті` }),
     kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
     kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
-    kpiCard({ color: 'purple', label: 'CPC', val: cpc ? fmtUsd(cpc) : '—' }),
-    kpiCard({ color: 'teal', label: 'CPL', val: cpl ? fmtUsd(cpl) : '—', sub: `${fmtN(totalConv)} конв` }),
+    kpiCard({ color: 'purple', label: 'CPC USD', val: cpc ? fmtUsd(cpc) : '—' }),
+    kpiCard({ color: 'teal', label: 'CPL USD', val: cpl ? fmtUsd(cpl) : '—', sub: `${fmtN(totalConv)} конв з pixel` }),
   ].join('');
 
-  // Daily spend
-  const daily = (D.tiktok.daily_30d || []).slice().sort((a,b) => (a.stat_time_day || '').localeCompare(b.stat_time_day || ''));
+  // Daily spend — приховую дні з 0
+  const dailyRaw = (D.tiktok.daily_30d || []).slice().sort((a,b) => (a.stat_time_day || '').localeCompare(b.stat_time_day || ''));
+  const daily = dailyRaw.filter(d => d.spend > 0.01);
   destroy('ttDaily');
   charts.ttDaily = new Chart($('ttDaily'), {
     type: 'bar',
     data: {
-      labels: daily.map(d => (d.stat_time_day || '').slice(5)),
+      labels: daily.map(d => (d.stat_time_day || '').slice(5, 10)),
       datasets: [{ label: 'Spend USD', data: daily.map(d => d.spend), backgroundColor: '#BE1C9A' }],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: { x: gridScale({ ticks: { maxTicksLimit: 14 } }), y: gridScale({ ticks: { callback: v => '$' + v } }) },
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtUsd(ctx.parsed.y)}` } } },
     },
   });
 
+  const dailyConv = dailyRaw.filter(d => d.spend > 0.01 || d.conv > 0);
   destroy('ttConvTrend');
   charts.ttConvTrend = new Chart($('ttConvTrend'), {
     type: 'line',
     data: {
-      labels: daily.map(d => (d.stat_time_day || '').slice(5)),
+      labels: dailyConv.map(d => (d.stat_time_day || '').slice(5, 10)),
       datasets: [
-        { label: 'Конверсії', data: daily.map(d => d.conv), borderColor: '#06D6A0', backgroundColor: 'rgba(6,214,160,.1)', tension: .3, fill: true, yAxisID: 'y' },
-        { label: 'CPA USD', data: daily.map(d => d.cpa), borderColor: '#F59E0B', backgroundColor: 'transparent', tension: .3, yAxisID: 'y1' },
+        { label: 'Конверсії з pixel', data: dailyConv.map(d => d.conv), borderColor: '#06D6A0', backgroundColor: 'rgba(6,214,160,.15)', tension: .3, fill: true, yAxisID: 'y' },
+        { label: 'CPA USD', data: dailyConv.map(d => d.cpa), borderColor: '#F59E0B', backgroundColor: 'transparent', tension: .3, yAxisID: 'y1', pointRadius: 3 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      scales: { x: gridScale(), y: gridScale(), y1: gridScale({ position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => '$' + v } }) },
+      scales: { x: gridScale({ ticks: { maxTicksLimit: 14 } }), y: gridScale({ title: { display: true, text: 'Конверсії', color: '#06D6A0' } }), y1: gridScale({ position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => '$' + v }, title: { display: true, text: 'CPA USD', color: '#F59E0B' } }) },
     },
   });
 
-  // Campaign table — match by id from list
+  // Campaign table
   const camp_by_id = {};
   camplist.forEach(c => { camp_by_id[c.id] = c; });
 
@@ -835,12 +912,22 @@ function renderTikTok() {
   tbody.innerHTML = camps.sort((a,b)=>b.spend-a.spend).map(c => {
     const cId = String(c.campaign_id);
     const meta = camp_by_id[cId] || {};
+    const campName = meta.name || c.campaign_name || cId;
+    const type = (function(){
+      const n = campName.toLowerCase();
+      if (n.includes('brand') || n.includes('business')) return { lbl: 'Brands', cls: 'pink' };
+      if (n.includes('creator') || n.includes('blogger') || n.includes('lead')) return { lbl: 'Creators', cls: 'green' };
+      if (n.includes('community') || n.includes('reach') || n.includes('top-video')) return { lbl: 'Awareness', cls: 'amber' };
+      return { lbl: 'Other', cls: 'gray' };
+    })();
+    const stat = (meta.status||'').replace('CAMPAIGN_STATUS_','').replace('_',' ').toLowerCase();
+    const statCls = stat.includes('enable') ? 'live' : stat.includes('disable') ? 'paused' : 'limited';
     return `
       <tr class="row-clickable" data-cid="${cId}">
         <td><span class="row-expand">▸</span></td>
-        <td><b>${meta.name || c.campaign_name || cId}</b></td>
-        <td><span class="status-pill ${(meta.status||'').includes('ENABLE') ? 'live' : (meta.status||'').includes('DISABLE') ? 'paused' : 'limited'}">${(meta.status||'—').replace('STATUS_','').replace('_','-')}</span></td>
-        <td class="muted">${meta.objective || '—'}</td>
+        <td><b>${campName}</b> <span class="badge ${type.cls}">${type.lbl}</span></td>
+        <td><span class="status-pill ${statCls}">${stat || '—'}</span></td>
+        <td class="muted">${(meta.objective||'').replace('OBJECTIVE_TYPE_','').replace('_',' ').toLowerCase() || '—'}</td>
         <td class="num"><b>${fmtUsd(c.spend)}</b></td>
         <td class="num">${fmtN(c.imp)}</td>
         <td class="num">${fmtN(c.clk)}</td>
@@ -893,52 +980,100 @@ function renderTikTok() {
     });
   });
 
-  // Top ads (with item_id from list)
+  // Top ads — sorted by spend, with type and без зайвих tt_item_id "—"
   const ad_meta = {};
   adslist.forEach(a => { ad_meta[a.id] = a; });
-  $('ttAdsTable').querySelector('tbody').innerHTML = ads.sort((a,b)=>b.conv-a.conv).slice(0,30).map(a => {
+  const camp_meta = {};
+  camplist.forEach(c => { camp_meta[c.id] = c; });
+
+  function classifyByName(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('brand') || n.includes('business') || n.includes('b2b')) return { lbl: 'Brands', cls: 'pink' };
+    if (n.includes('creator') || n.includes('blogger') || n.includes('lead')) return { lbl: 'Creators', cls: 'green' };
+    if (n.includes('community') || n.includes('reach') || n.includes('top-video')) return { lbl: 'Awareness', cls: 'amber' };
+    return { lbl: 'Other', cls: 'gray' };
+  }
+
+  // Find campaign name by ad
+  function getCampForAd(ad) {
+    const adMeta = ad_meta[String(ad.ad_id)];
+    if (adMeta && adMeta.campaign_id) {
+      const cMeta = camp_meta[adMeta.campaign_id];
+      if (cMeta && cMeta.name) return cMeta.name;
+    }
+    return ad.campaign_name || '—';
+  }
+
+  const adsByCpl = ads.slice().sort((a,b) => b.spend - a.spend).slice(0, 30);
+  $('ttAdsTable').querySelector('tbody').innerHTML = adsByCpl.map(a => {
     const m = ad_meta[String(a.ad_id)] || {};
-    const itemId = m.item_id || '—';
+    const itemId = m.item_id;
+    const adName = m.name || a.ad_id || '';
+    const campName = getCampForAd(a);
+    const type = classifyByName(campName);
+    const link = itemId
+      ? `<a href="https://www.tiktok.com/@mypintop_ua/video/${itemId}" target="_blank" style="color:var(--green);text-decoration:underline;font-size:11px;">▶</a>`
+      : '<span class="muted">—</span>';
     return `
       <tr>
-        <td title="${m.name || a.ad_id}">${(m.name || a.ad_id || '').slice(0,35)}</td>
-        <td class="mono">${itemId !== '—' ? `<a href="https://www.tiktok.com/@mypintop_ua/video/${itemId}" target="_blank" style="color:var(--green);text-decoration:underline;">${itemId.slice(-8)}</a>` : '—'}</td>
-        <td class="muted" title="${a.campaign_name || ''}">${(a.campaign_name || '').slice(0,18)}</td>
+        <td title="${adName}"><b>${adName.slice(0, 32)}</b></td>
+        <td><span class="badge ${type.cls}">${type.lbl}</span></td>
+        <td class="muted" title="${campName}">${campName.slice(0, 28)}</td>
         <td class="num">${fmtUsd(a.spend)}</td>
         <td class="num">${fmtN(a.imp)}</td>
         <td class="num">${fmtN(a.clk)}</td>
-        <td class="num">${fmtPct(a.ctr/100)}</td>
+        <td class="num">${a.imp ? fmtPct(a.clk/a.imp) : '—'}</td>
         <td class="num">${fmtN(a.conv)}</td>
         <td class="num">${a.conv ? fmtUsd(a.spend/a.conv) : '—'}</td>
+        <td>${link}</td>
       </tr>`;
   }).join('');
 
-  // Reconcile: TT cabinet vs GA4 source=tiktok
+  // Ad insights TT
+  const winners = ads.filter(a => a.conv >= 5).sort((a,b) => (a.spend/a.conv)-(b.spend/b.conv)).slice(0, 3);
+  const wasteAds = ads.filter(a => a.spend > 15 && a.conv === 0).slice(0, 3);
+  let ttInsightHtml = '<b>🎯 Інсайти креативи TikTok:</b><br>';
+  if (winners.length) {
+    ttInsightHtml += `🏆 <b>Топ-${winners.length} CPL переможців:</b> ${winners.map(w => {
+      const m = ad_meta[String(w.ad_id)] || {};
+      return `"${(m.name || w.ad_id || '').slice(0, 28)}" (CPL ${fmtUsd(w.spend/w.conv)}, ${w.conv} конв)`;
+    }).join(' · ')}. — масштабуй або копіюй стиль (історично tt_item_id 7576247557655891256 і 7595134551362456844 давали CPL $1.44-$1.82).`;
+  }
+  if (wasteAds.length) {
+    ttInsightHtml += `<br>⛔ <b>Витратні без результату (spend > $15, 0 conv):</b> ${wasteAds.map(w => {
+      const m = ad_meta[String(w.ad_id)] || {};
+      return `"${(m.name || w.ad_id || '').slice(0, 28)}" (${fmtUsd(w.spend)})`;
+    }).join(' · ')}. Перевір аудиторію або зміни креатив.`;
+  }
+  $('ttAdsInsight').innerHTML = ttInsightHtml;
+
+  // Reconcile: TT cabinet (30d) vs GA4 source=tiktok (90d)
   const ga4tt = D.ga4.utm.filter(u => u.src === 'tiktok' && u.med === 'cpc')
                 .reduce((a,r) => ({s:a.s+r.s, c:a.c+r.c, nu:a.nu+r.nu}), {s:0, c:0, nu:0});
   $('ttReconcile').innerHTML = `
     <div class="card">
-      <div class="card-title">Кліки/Сесії</div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div><div class="muted">TT cabinet</div><div style="font-size:24px;font-weight:800;">${fmtN(totalClk)}</div></div>
+      <div class="card-title">Клікі (30д) vs сесії GA4 (90д)</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div><div class="muted" style="font-size:11px;">TikTok cabinet 30д</div><div style="font-size:24px;font-weight:800;">${fmtN(totalClk)}</div><div class="muted" style="font-size:10px;">кліки в кабінеті</div></div>
         <div style="font-size:20px;color:var(--text-muted);">→</div>
-        <div><div class="muted">GA4 sessions (90d)</div><div style="font-size:24px;font-weight:800;">${fmtN(ga4tt.s)}</div></div>
+        <div><div class="muted" style="font-size:11px;">GA4 sessions 90д</div><div style="font-size:24px;font-weight:800;">${fmtN(ga4tt.s)}</div><div class="muted" style="font-size:10px;">utm_source=tiktok</div></div>
       </div>
-      <div class="muted" style="margin-top:10px;font-size:11px;">Якщо різниця велика — перевір UTM розмітку та blockers.</div>
+      <div class="muted" style="margin-top:10px;font-size:11px;">Періоди різні (30д vs 90д), тому не повинні точно співпадати. Якщо за 90д GA4 сесії > 3× кабінет 30д — норма (старі кампанії накопичились).</div>
     </div>
     <div class="card">
-      <div class="card-title">Конверсії</div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div><div class="muted">TT cabinet conv</div><div style="font-size:24px;font-weight:800;">${fmtN(totalConv)}</div></div>
+      <div class="card-title">Конверсії з різних джерел</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div><div class="muted" style="font-size:11px;">Pixel cabinet 30д</div><div style="font-size:24px;font-weight:800;">${fmtN(totalConv)}</div><div class="muted" style="font-size:10px;">ON_WEB_REGISTER події</div></div>
         <div style="font-size:20px;color:var(--text-muted);">→</div>
-        <div><div class="muted">GA4 conv (90d)</div><div style="font-size:24px;font-weight:800;">${fmtN(ga4tt.c)}</div></div>
+        <div><div class="muted" style="font-size:11px;">GA4 conv events 90д</div><div style="font-size:24px;font-weight:800;">${fmtN(ga4tt.c)}</div><div class="muted" style="font-size:10px;">event count, не users</div></div>
       </div>
-      <div class="muted" style="margin-top:10px;font-size:11px;">GA4 conv — event count (не unique users).</div>
+      <div class="muted" style="margin-top:10px;font-size:11px;">Pixel — точніше для performance. GA4 події рахуються кілька разів за сесію.</div>
     </div>
     <div class="card">
-      <div class="card-title">Нові юзери GA4</div>
-      <div style="font-size:30px;font-weight:800;">${fmtN(ga4tt.nu)}</div>
-      <div class="muted" style="margin-top:10px;font-size:11px;">Із них зареєструвалось як креатори — дивись у "Insights → Funnel".</div>
+      <div class="card-title">Нові юзери з TikTok</div>
+      <div style="font-size:30px;font-weight:800;color:var(--green);">${fmtN(ga4tt.nu)}</div>
+      <div class="muted" style="margin-top:6px;font-size:12px;">Перших візитів за 90д. Із них дійшли до реєстрації — ${totalConv} (за даними pixel).</div>
+      <div class="muted" style="margin-top:10px;font-size:11px;">Conversion rate: ${ga4tt.nu ? ((totalConv/ga4tt.nu*100).toFixed(2)+'%') : '—'} (нові юзери → реєстрація).</div>
     </div>
   `;
 }
@@ -955,10 +1090,10 @@ function renderMeta() {
   const totalEng = meta_utm.reduce((a,r)=>a+r.es,0);
 
   $('kpiMeta').innerHTML = [
-    kpiCard({ color: 'blue', label: 'GA4 сесії (90d)', val: fmtN(totalSess), sub: 'utm_source IN (meta, facebook)' }),
-    kpiCard({ color: 'purple', label: 'Engaged sessions', val: fmtN(totalEng), sub: totalSess ? `${(totalEng/totalSess*100).toFixed(0)}% engagement rate` : '' }),
-    kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(totalNu) }),
-    kpiCard({ color: 'amber', label: 'Конверсії GA4', val: fmtN(totalConv) }),
+    kpiCard({ color: 'blue', label: 'GA4 сесії (90d)', val: fmtN(totalSess), sub: 'utm_source = meta або facebook' }),
+    kpiCard({ color: 'purple', label: 'Engaged sessions', val: fmtN(totalEng), sub: totalSess ? `${(totalEng/totalSess*100).toFixed(0)}% engagement rate (>10s або 2+ pages)` : '' }),
+    kpiCard({ color: 'pink', label: 'Нові юзери (90d)', val: fmtN(totalNu), sub: 'first-touch users' }),
+    kpiCard({ color: 'amber', label: 'GA4 conv events', val: fmtN(totalConv), sub: 'event count, не unique users' }),
   ].join('');
 
   $('metaTable').querySelector('tbody').innerHTML = meta_utm.map(u => `
@@ -1245,11 +1380,15 @@ function renderAudience() {
       plugins: { legend: { position: 'bottom' } }, cutout: '60%' },
   });
 
-  $('audDeviceTable').querySelector('tbody').innerHTML = D.ga4.devices_30d.slice(0, 8).map(d => `
+  const totalDevSess = D.ga4.devices_30d.reduce((a,d)=>a+d.s,0);
+  $('audDeviceTable').querySelector('tbody').innerHTML = D.ga4.devices_30d.slice(0, 12).map(d => `
     <tr>
-      <td>${d.dev}</td><td class="muted">${d.os}</td>
+      <td><b>${d.dev}</b></td>
+      <td class="muted">${d.os}</td>
       <td class="num">${fmtN(d.s)}</td>
-      <td class="num">${fmtPct(d.br)}</td>
+      <td class="num">${fmtN(d.u)}</td>
+      <td class="num"><span class="badge ${d.br > 0.5 ? 'red' : d.br > 0.3 ? 'amber' : 'green'}">${fmtPct(d.br)}</span></td>
+      <td class="num">${totalDevSess ? ((d.s/totalDevSess)*100).toFixed(1)+'%' : '—'}</td>
     </tr>`).join('');
 
   // Country
@@ -1301,19 +1440,56 @@ function renderAudience() {
       plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 10 } } } }, cutout: '55%' },
   });
 
-  // Hour & DOW
+  // Hour (sort by hour)
   const dow = D.ga4.dow_30d || [];
-  const hod = D.ga4.hod_30d || [];
+  const hod = (D.ga4.hod_30d || []).slice().sort((a,b) => +a.h - +b.h);
   destroy('audHourDow');
   charts.audHourDow = new Chart($('audHourDow'), {
     type: 'bar',
     data: {
-      labels: hod.map(h => h.h + 'г'),
-      datasets: [{ label: 'Сесії за годину', data: hod.map(h => h.s), backgroundColor: '#06D6A0' }],
+      labels: hod.map(h => h.h.padStart(2, '0') + ':00'),
+      datasets: [{
+        label: 'Сесії',
+        data: hod.map(h => h.s),
+        backgroundColor: hod.map(h => {
+          const hrs = +h.h;
+          if (hrs >= 12 && hrs <= 18) return '#06D6A0';  // day peak
+          if (hrs >= 19 && hrs <= 22) return '#7C3AED';  // evening
+          return '#3B82F6';  // night/morning
+        }),
+      }],
     },
     options: { responsive: true, maintainAspectRatio: false,
-      scales: { x: gridScale(), y: gridScale() }, plugins: { legend: { display: false } } },
+      scales: { x: gridScale(), y: gridScale() },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${fmtN(ctx.parsed.y)} сесій о ${ctx.label}` } } } },
   });
+
+  // Hour insight
+  if (hod.length) {
+    const peakH = hod.reduce((m,x) => x.s > m.s ? x : m, { s: 0, h: '0' });
+    const quietH = hod.reduce((m,x) => x.s < m.s || m.s === 0 ? x : m, { s: Infinity, h: '0' });
+    $('audHourInsight').innerHTML = `
+      <b>Пік:</b> <b style="color:var(--green)">${peakH.h}:00</b> (${fmtN(peakH.s)} сесій).
+      <b>Затишно:</b> <b style="color:var(--text-muted)">${quietH.h}:00</b> (${fmtN(quietH.s)} сесій).
+      Планування нових креативів + email-розсилок — ближче до 12-18 години.
+    `;
+  }
+
+  // DOW chart
+  destroy('audDow');
+  if (dow.length) {
+    const dowOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const dowMap = Object.fromEntries(dow.map(d => [d.d, d.s]));
+    const dowSorted = dowOrder.filter(d => dowMap[d] != null);
+    charts.audDow = new Chart($('audDow'), {
+      type: 'bar',
+      data: { labels: dowSorted, datasets: [{ label: 'Сесії', data: dowSorted.map(d => dowMap[d] || 0), backgroundColor: '#7C3AED' }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        scales: { x: gridScale(), y: gridScale() },
+        plugins: { legend: { display: false } } },
+    });
+  }
 }
 
 // ============================================================
@@ -1321,27 +1497,144 @@ function renderAudience() {
 // ============================================================
 
 function renderInsights() {
-  // Funnel
-  const funnelEvents = ['pintop_c_all_signinsignup', 'pintop_c_all_macroconv', 'pintop_c_all_microconv',
-                        'pintop_c_all_engaged_audience', 'pintop_c_all_topengaged'];
+  // Funnel — structured 4-step reg flow
   const funnelByName = {};
   D.ga4.funnel.forEach(f => { funnelByName[f.event] = f; });
-
-  const showFunnel = D.ga4.funnel.filter(f => f.event.includes('pintop') || f.event.includes('signin') || f.event.includes('signup') || f.event.includes('register'))
-                      .sort((a,b) => b.users - a.users).slice(0, 12);
-
+  const stepsDef = [
+    { step: '1. Перехід на сайт', event: 'session_start', icon: '🌐' },
+    { step: '2. Клік "Sign up" (креатор)', event: 'pintop_c_all_signinsignup', icon: '👆' },
+    { step: '3. Sign-in AIR (OAuth)', event: 'air_signin_done', icon: '🔐' },
+    { step: '4. Завершення креатор-реєстрації', event: 'pintop_c_signin_click', icon: '✅' },
+    { step: '+ Brand sign-up (B2B)', event: 'pintop_b_all_signinsignup', icon: '🏢' },
+    { step: '+ Demo request (Brands)', event: 'pintopn_b_all_demo', icon: '📅' },
+  ];
+  const showFunnel = stepsDef.map(s => ({ ...s, ...(funnelByName[s.event] || { count: 0, users: 0, conv: 0 }) }));
   $('funnelTable').querySelector('tbody').innerHTML = showFunnel.map((f, i) => {
-    const prev = i > 0 ? showFunnel[i-1].users : null;
-    const dropTxt = prev ? ((f.users / prev) * 100).toFixed(0) + '%' : '100%';
+    const prev = i > 0 && showFunnel[i-1].users > 0 ? showFunnel[i-1].users : null;
+    const dropTxt = prev && f.users ? ((f.users / prev) * 100).toFixed(0) + '%' : i === 0 ? '100%' : '—';
+    const dropCls = !prev ? 'gray' : (f.users/prev < 0.2) ? 'red' : (f.users/prev < 0.5) ? 'amber' : 'green';
     return `
       <tr>
-        <td class="mono">${f.event}</td>
+        <td>${f.icon} <b>${f.step}</b></td>
+        <td class="mono muted">${f.event}</td>
         <td class="num">${fmtN(f.count)}</td>
         <td class="num"><b>${fmtN(f.users)}</b></td>
+        <td class="num"><span class="badge ${dropCls}">${dropTxt}</span></td>
         <td class="num">${fmtN(f.conv)}</td>
-        <td class="num"><span class="badge ${prev && f.users/prev < 0.5 ? 'red' : prev && f.users/prev < 0.8 ? 'amber' : 'green'}">${dropTxt}</span></td>
       </tr>`;
   }).join('');
+
+  // Funnel insight
+  const step2 = funnelByName['pintop_c_all_signinsignup'] || { users: 0 };
+  const step3 = funnelByName['air_signin_done'] || { users: 0 };
+  const signinClick = funnelByName['pintop_c_signin_click'] || { users: 0 };
+  const brandReg = funnelByName['pintop_b_all_signinsignup'] || { users: 0 };
+  const demoReq = funnelByName['pintopn_b_all_demo'] || { users: 0 };
+  const conv23 = step2.users ? (step3.users / step2.users * 100).toFixed(0) : '—';
+  $('funnelInsight').innerHTML = `
+    <b>📊 Ключові висновки воронки (90 днів):</b><br>
+    Клацнули "Sign up" креатора → <b>${fmtN(step2.users)}</b> юзерів.
+    Довели OAuth у AIR → <b>${fmtN(step3.users)}</b>. Conversion ${step2.users ? conv23 + '%' : '—'} на цьому кроці.
+    <br>B2B активність: <b>${fmtN(brandReg.users)}</b> клікнули на brand sign-up, <b>${fmtN(demoReq.users)}</b> дійшли до Book Demo форми.
+    <br><b>⛔ Критично:</b> немає події <code>registration_complete</code> — не можемо виміряти точний CR "перейшов → зареєструвався". PPC оптимізує по проксі-події, що менш точно.
+  `;
+
+  // Channel path — реклама vs органіка
+  const channels = pickChannelsForPeriod();
+  const paidTotal = (channels.find(c => c.ch === 'Paid Social') || { s: 0, c: 0 }).s + (channels.find(c => c.ch === 'Paid Search') || { s: 0, c: 0 }).s;
+  const paidConv = (channels.find(c => c.ch === 'Paid Social') || { s: 0, c: 0 }).c + (channels.find(c => c.ch === 'Paid Search') || { s: 0, c: 0 }).c;
+  const orgSearch = channels.find(c => c.ch === 'Organic Search') || { s: 0, c: 0, nu: 0 };
+  const orgSoc = channels.find(c => c.ch === 'Organic Social') || { s: 0, c: 0, nu: 0 };
+  const orgTotal = orgSearch.s + orgSoc.s;
+  const orgConv = orgSearch.c + orgSoc.c;
+  const direct = channels.find(c => c.ch === 'Direct') || { s: 0, c: 0 };
+  const ref = channels.find(c => c.ch === 'Referral') || { s: 0, c: 0 };
+
+  $('channelPath').innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg, rgba(124,58,237,.08), rgba(190,28,154,.04));">
+      <div class="card-title">🎯 Платний трафік — performance</div>
+      <div style="font-size:32px;font-weight:800;color:var(--purple);">${fmtN(paidTotal)}</div>
+      <div class="muted">сесій · Paid Search + Paid Social</div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div><span class="muted">Конверсії GA4 events:</span> <b>${fmtN(paidConv)}</b></div>
+        <div><span class="muted">CR events:</span> <b>${paidTotal ? (paidConv/paidTotal*100).toFixed(1)+'%' : '—'}</b></div>
+        <div style="margin-top:8px;font-size:12px;" class="muted">⚡ Холодний трафік — платить за кожен клік. Висока швидкість тесту, але CPA росте при масштабуванні.</div>
+      </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg, rgba(6,214,160,.08), rgba(59,130,246,.04));">
+      <div class="card-title">🌱 Органіка — безкоштовний трафік</div>
+      <div style="font-size:32px;font-weight:800;color:var(--green);">${fmtN(orgTotal + direct.s + ref.s)}</div>
+      <div class="muted">сесій · Organic + Direct + Referral</div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div><span class="muted">Organic Search (SEO):</span> <b>${fmtN(orgSearch.s)}</b> сесій, <b>${fmtN(orgSearch.c)}</b> конв</div>
+        <div><span class="muted">Organic Social:</span> <b>${fmtN(orgSoc.s)}</b> сесій</div>
+        <div><span class="muted">Direct:</span> <b>${fmtN(direct.s)}</b> сесій (повертаються, bookmarks)</div>
+        <div><span class="muted">Referral:</span> <b>${fmtN(ref.s)}</b> сесій (my.milx.app, партнери)</div>
+        <div style="margin-top:8px;font-size:12px;" class="muted">🧲 Теплий трафік — вища лояльність. 69% органіки = branded (люди вже знають pin.top).</div>
+      </div>
+    </div>
+  `;
+
+  // Top / Bottom performers
+  const allAds = [];
+  D.gads.ads_30d.forEach(a => { if (a.conv > 3) allAds.push({ ch: 'Google', name: a.headline, spend: a.cost_usd, conv: a.conv, cpa: a.cost_usd/a.conv }); });
+  (D.tiktok.ads_30d || []).forEach(a => {
+    if (a.conv > 3) {
+      const ad_meta = (D.tiktok.ads_list || []).find(x => x.id === String(a.ad_id));
+      allAds.push({ ch: 'TikTok', name: (ad_meta && ad_meta.name) || a.ad_id, spend: a.spend, conv: a.conv, cpa: a.spend/a.conv });
+    }
+  });
+  const topBy = allAds.slice().sort((a,b) => a.cpa - b.cpa).slice(0, 3);
+
+  const allKws = D.gads.keywords_30d.filter(k => k.conv > 3).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 3);
+
+  $('topPerformers').innerHTML = `
+    <div style="margin-bottom:12px;"><b style="color:var(--green);">🎬 Топ креативи за CPL:</b></div>
+    ${topBy.length ? topBy.map(a => `
+      <div class="issue-item" style="border-left-color:var(--green);">
+        <div>
+          <div class="issue-title">${a.ch}: ${a.name.slice(0, 50)}</div>
+          <div class="issue-body">CPL <b style="color:var(--green);">${fmtUsd(a.cpa)}</b> · ${a.conv} конв за ${fmtUsd(a.spend)}</div>
+        </div>
+      </div>`).join('') : '<div class="muted">Поки замало conv data для надійних переможців</div>'}
+    <div style="margin:14px 0 10px;"><b style="color:var(--green);">🔑 Топ ключові слова за CPA:</b></div>
+    ${allKws.length ? allKws.map(k => `
+      <div class="issue-item" style="border-left-color:var(--green);">
+        <div>
+          <div class="issue-title">"${k.kw}" <span class="badge gray">${k.mt}</span></div>
+          <div class="issue-body">CPA <b style="color:var(--green);">${fmtUsd(k.cost_usd/k.conv)}</b> · ${k.conv} конв · ${fmtN(k.imp)} імп</div>
+        </div>
+      </div>`).join('') : '<div class="muted">Недостатньо конверсій по ключах</div>'}
+  `;
+
+  const wasteAds = [];
+  D.gads.ads_30d.filter(a => a.cost_usd > 10 && a.conv === 0).slice(0, 3).forEach(a => wasteAds.push({ ch: 'Google', name: a.headline, spend: a.cost_usd }));
+  (D.tiktok.ads_30d || []).filter(a => a.spend > 10 && a.conv === 0).slice(0, 3).forEach(a => {
+    const ad_meta = (D.tiktok.ads_list || []).find(x => x.id === String(a.ad_id));
+    wasteAds.push({ ch: 'TikTok', name: (ad_meta && ad_meta.name) || a.ad_id, spend: a.spend });
+  });
+  wasteAds.sort((a,b) => b.spend - a.spend);
+
+  const wasteKws = D.gads.keywords_30d.filter(k => k.cost_usd > 10 && k.conv === 0).slice(0, 3);
+
+  $('bottomPerformers').innerHTML = `
+    <div style="margin-bottom:12px;"><b style="color:var(--red);">💸 Креативи що з'їдають бюджет:</b></div>
+    ${wasteAds.length ? wasteAds.slice(0, 3).map(a => `
+      <div class="issue-item" style="border-left-color:var(--red);">
+        <div>
+          <div class="issue-title">${a.ch}: ${(a.name || '').slice(0, 50)}</div>
+          <div class="issue-body">Spend <b style="color:var(--red);">${fmtUsd(a.spend)}</b> · <b>0 конверсій</b> · зупини або зміни</div>
+        </div>
+      </div>`).join('') : '<div class="muted">Немає проблемних креативів — добре!</div>'}
+    <div style="margin:14px 0 10px;"><b style="color:var(--red);">🚫 Ключі без результату (spend > $10, 0 conv):</b></div>
+    ${wasteKws.length ? wasteKws.map(k => `
+      <div class="issue-item" style="border-left-color:var(--red);">
+        <div>
+          <div class="issue-title">"${k.kw}" <span class="badge gray">${k.mt}</span></div>
+          <div class="issue-body">Spend <b style="color:var(--red);">${fmtUsd(k.cost_usd)}</b> · 0 конв · додай до негативів</div>
+        </div>
+      </div>`).join('') : '<div class="muted">Ключі працюють — без marnotratnykh</div>'}
+  `;
 
   // Tracking checklist
   const events_set = new Set(D.ga4.events_30d.map(e => e.name));
@@ -1466,13 +1759,14 @@ function renderInsights() {
       </div>
     </div>`).join('');
 
-  // Events
+  // Events with avg per user
   $('eventsTable').querySelector('tbody').innerHTML = D.ga4.events_30d.slice(0, 25).map(e => `
     <tr>
       <td class="mono">${e.name}</td>
       <td class="num">${fmtN(e.count)}</td>
-      <td class="num">${fmtN(e.conv)}</td>
+      <td class="num">${e.conv > 0 ? `<span class="badge green">${fmtN(e.conv)}</span>` : '<span class="muted">—</span>'}</td>
       <td class="num">${fmtN(e.users)}</td>
+      <td class="num">${e.users ? (e.count/e.users).toFixed(1) : '—'}</td>
     </tr>`).join('');
 }
 
@@ -1557,6 +1851,26 @@ function initApp() {
       b.classList.add('active');
       gscPeriod = b.dataset.sub;
       renderGsc();
+    });
+  });
+
+  // Google Ads active/all toggle
+  document.querySelectorAll('[data-gads-filter]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-gads-filter]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.gadsFilter = b.dataset.gadsFilter;
+      renderGads();
+    });
+  });
+
+  // TikTok active/all toggle
+  document.querySelectorAll('[data-tt-filter]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-tt-filter]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.ttFilter = b.dataset.ttFilter;
+      renderTikTok();
     });
   });
 

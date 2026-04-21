@@ -125,17 +125,39 @@ button {
   box-shadow: var(--shadow-lg);
 }
 
+.gate-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.gate-logo-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: white;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(6, 214, 160, .25);
+  flex-shrink: 0;
+}
 .gate-logo {
-  font-size: var(--fs-xl);
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
+  letter-spacing: -0.8px;
 }
 .gate-logo span {
   background: linear-gradient(90deg, var(--purple), var(--pink));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+.gate-product {
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+  margin: 0 0 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 .gate-sub {
   font-size: var(--fs-md);
@@ -229,6 +251,29 @@ button {
   font-size: 17px;
   font-weight: 900;
   color: #0D0D0D;
+}
+.brand-logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: white;
+  padding: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.footer-logo-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: white;
+  padding: 2px;
 }
 .brand-title {
   font-size: var(--fs-lg);

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>pin.top · Marketing Intelligence</title>
+<link rel="icon" type="image/png" href="./favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -18,11 +19,15 @@
      ============================================================ -->
 <div class="gate" id="gate">
   <div class="gate-card">
-    <div class="gate-logo">pin<span>.top</span> · Marketing Intelligence</div>
+    <div class="gate-logo-wrap">
+      <img src="./logo-icon.png" alt="pin.top" class="gate-logo-img">
+      <div class="gate-logo">pin<span>.top</span></div>
+    </div>
+    <div class="gate-product">Marketing Intelligence</div>
     <div class="gate-sub">Внутрішній дашборд. Введіть пароль для доступу.</div>
     <label class="gate-label" for="gatePass">Пароль</label>
     <input type="password" id="gatePass" class="gate-input" autocomplete="off" autofocus>
-    <button class="gate-btn" id="gateBtn">Розблокувати</button>
+    <button class="gate-btn" id="gateBtn">Увійти</button>
     <div class="gate-err" id="gateErr">Невірний пароль</div>
   </div>
 </div>
@@ -35,7 +40,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="brand-logo">p</div>
+        <img src="./logo-icon.png" alt="pin.top" class="brand-logo-img">
         <div>
           <div class="brand-title">pin<em>.top</em> Marketing Intelligence</div>
           <div class="brand-sub" id="brandSub">GA4 · Google Ads · TikTok · Meta · GSC</div>
@@ -93,7 +98,7 @@
          ============================================================ -->
     <section class="tab-panel active" data-panel="overview">
       <div class="page-head">
-        <h1 class="page-title">Executive <span>Overview</span></h1>
+        <h1 class="page-title">Загальна <span>картина</span></h1>
         <div class="page-subtitle" id="overviewSubtitle"></div>
       </div>
 
@@ -109,25 +114,34 @@
           <div class="chart-box lg"><canvas id="overviewTrend"></canvas></div>
         </div>
         <div class="card">
-          <div class="card-title">Канали трафіку</div>
+          <div class="card-title">Канали трафіку
+            <span class="hint">частка сесій</span>
+          </div>
           <div class="chart-box"><canvas id="overviewChannels"></canvas></div>
+          <table class="t tight" id="overviewChannelsTable" style="margin-top:10px;">
+            <thead><tr><th>Канал</th><th class="num">Сесії</th><th class="num">%</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
 
       <div class="grid grid-2 section">
         <div class="card">
           <div class="card-title">Платні канали — витрати ($USD)
-            <span class="hint">по днях</span>
+            <span class="hint">по днях обраного періоду (дні без витрат приховані)</span>
           </div>
           <div class="chart-box"><canvas id="overviewPaidSpend"></canvas></div>
+          <div class="notice" style="margin:10px 0 0;">
+            <b>Як читати:</b> висота бару = сума spend за день. Стекнуто Google + TikTok. Якщо в якийсь день обидва канали не витрачали — день прихований.
+          </div>
         </div>
         <div class="card">
           <div class="card-title">Топ-10 джерел трафіку
-            <span class="hint">за обраний період</span>
+            <span class="hint">за обраний період · CR = GA4 conv / sessions (event count)</span>
           </div>
           <div class="table-wrap">
             <table class="t" id="overviewSources">
-              <thead><tr><th>Джерело</th><th>Канал</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Conv.</th><th class="num">CR</th></tr></thead>
+              <thead><tr><th>Джерело</th><th>Канал</th><th class="num">Сесії</th><th class="num">Нові</th><th class="num">Conv (events)</th><th class="num">CR events</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -137,15 +151,16 @@
       <div class="grid grid-2 section">
         <div class="card">
           <div class="card-title">Місячна динаміка
-            <span class="hint">останні 12 місяців</span>
+            <span class="hint">останні 12 місяців, pin.top scope</span>
           </div>
-          <div class="chart-box"><canvas id="overviewMonthly"></canvas></div>
+          <div class="chart-box lg"><canvas id="overviewMonthly"></canvas></div>
         </div>
         <div class="card">
           <div class="card-title">YoY: цей рік vs минулий
-            <span class="hint">по місяцях</span>
+            <span class="hint">по місяцях, сесії pin.top</span>
           </div>
-          <div class="chart-box"><canvas id="overviewYoY"></canvas></div>
+          <div class="chart-box lg"><canvas id="overviewYoY"></canvas></div>
+          <div id="yoySummary" class="notice success" style="margin-top:10px;"></div>
         </div>
       </div>
     </section>
@@ -155,25 +170,30 @@
          ============================================================ -->
     <section class="tab-panel" data-panel="paid">
       <div class="page-head">
-        <h1 class="page-title">Paid <span>Overview</span></h1>
-        <div class="page-subtitle">Зведено по 3 каналах. Google Ads валюта конвертована з AED в USD за фіксованим курсом 3.6725.</div>
+        <h1 class="page-title">Платний <span>трафік</span></h1>
+        <div class="page-subtitle">Зведено по 3 каналах. Google Ads конвертовано з AED→USD за фіксованим курсом 3.6725. Цифри — кабінетні (Google + TikTok), Meta — з GA4.</div>
+      </div>
+
+      <div class="notice">
+        <b>Конверсії (cabinet)</b> = реєстрації, заявки, демо в самих рекламних кабінетах (правильний performance KPI). <b>Конверсії GA4</b> = event count подій, помічених як conversion (включає duplicate hits, NE unique users). Це різні величини, не змішуй.
       </div>
 
       <div class="grid grid-4 section" id="kpiPaid"></div>
 
       <div class="grid grid-3 section" id="paidCards"></div>
 
-      <div class="grid grid-2 section">
-        <div class="card">
-          <div class="card-title">Spend USD по каналах — динаміка</div>
-          <div class="chart-box lg"><canvas id="paidSpendChart"></canvas></div>
+      <div class="card section">
+        <div class="card-title">Spend USD по каналах — динаміка
+          <span class="hint">обраний період, дні без витрат приховані</span>
         </div>
-        <div class="card">
-          <div class="card-title">Сесії GA4 по платних кампаніях
-            <span class="hint">для зведення кабінет vs аналітика</span>
-          </div>
-          <div class="chart-box lg"><canvas id="paidSessionsChart"></canvas></div>
+        <div class="chart-box lg"><canvas id="paidSpendChart"></canvas></div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Сесії GA4 по платних кампаніях
+          <span class="hint">90 днів, для зведення кабінет vs аналітика</span>
         </div>
+        <div class="chart-box"><canvas id="paidSessionsChart"></canvas></div>
       </div>
 
       <div class="card section">
@@ -200,10 +220,15 @@
     <section class="tab-panel" data-panel="gads">
       <div class="page-head">
         <h1 class="page-title">Google <span>Ads</span></h1>
-        <div class="page-subtitle">Customer ID 3651749366 (Pin.Top UAE | AED). Конвертація AED→USD за фіксованим курсом UAE peg <b>3.6725</b>.</div>
+        <div class="page-subtitle">Customer ID 3651749366 (Pin.Top UAE | AED). Конвертація AED→USD за фіксованим курсом UAE peg <b>3.6725</b>. Конверсії — з рекламного кабінету (event-conv tracking).</div>
       </div>
 
       <div class="grid grid-6 section" id="kpiGads"></div>
+
+      <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
+        <button data-gads-filter="active" class="active">Тільки активні</button>
+        <button data-gads-filter="all">Усі (включно paused)</button>
+      </div>
 
       <div class="grid grid-2 section">
         <div class="card">
@@ -237,27 +262,30 @@
         </div>
       </div>
 
-      <div class="grid grid-2 section">
-        <div class="card">
-          <div class="card-title">Top-30 ключових слів
-            <span class="hint">за spend</span>
-          </div>
-          <div class="scroll-h">
-            <table class="t" id="gadsKwTable">
-              <thead><tr><th>Keyword</th><th>Type</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">CTR</th><th class="num">Conv</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+      <div class="card section">
+        <div class="card-title">Top-50 ключових слів
+          <span class="hint">за spend · 30 днів · клікабельні</span>
         </div>
-        <div class="card">
-          <div class="card-title">Top-20 оголошень</div>
-          <div class="scroll-h">
-            <table class="t" id="gadsAdsTable">
-              <thead><tr><th>Headline (перші 3)</th><th>Кампанія</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">Conv</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table class="t" id="gadsKwTable">
+            <thead><tr><th>Keyword</th><th>Match type</th><th>Кампанія</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">CTR</th><th class="num">CPC USD</th><th class="num">Conv</th><th class="num">CPA USD</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
+        <div id="gadsKwInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Top-30 оголошень
+          <span class="hint">за spend · responsive search ad headlines</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="gadsAdsTable">
+            <thead><tr><th>Headline (перші 3)</th><th>Ad group</th><th>Кампанія</th><th class="num">Spend USD</th><th class="num">Imp</th><th class="num">Clk</th><th class="num">CTR</th><th class="num">Conv</th><th class="num">CPA USD</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="gadsAdsInsight" class="notice success" style="margin-top:14px;"></div>
       </div>
     </section>
 
@@ -267,10 +295,15 @@
     <section class="tab-panel" data-panel="tiktok">
       <div class="page-head">
         <h1 class="page-title">TikTok <span>Ads</span></h1>
-        <div class="page-subtitle">Advertiser 7587396752228171783. Кабінетні дані з Marketing API + сопоставлення з GA4 source=tiktok.</div>
+        <div class="page-subtitle">Advertiser 7587396752228171783. Кабінетні дані з Marketing API + сопоставлення з GA4 source=tiktok. Конверсії з pixel ON_WEB_REGISTER.</div>
       </div>
 
       <div class="grid grid-6 section" id="kpiTikTok"></div>
+
+      <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
+        <button data-tt-filter="active" class="active">Тільки активні</button>
+        <button data-tt-filter="all">Усі (включно disabled)</button>
+      </div>
 
       <div class="grid grid-2 section">
         <div class="card">
@@ -301,24 +334,28 @@
       </div>
 
       <div class="card section">
-        <div class="card-title">Топ-20 креативів (ads)
-          <span class="hint">за конверсіями</span>
+        <div class="card-title">Топ-30 креативів (ads)
+          <span class="hint">за spend · тип кампанії = Creators (Sell Hub) / Brands (Buy Hub)</span>
         </div>
-        <div class="scroll-h">
+        <div class="table-wrap">
           <table class="t" id="ttAdsTable">
             <thead><tr>
-              <th>Ad name</th><th>tt_item_id</th><th>Кампанія</th>
+              <th>Ad name</th><th>Тип</th><th>Кампанія</th>
               <th class="num">Spend</th><th class="num">Imp</th><th class="num">Clk</th>
-              <th class="num">CTR</th><th class="num">Conv</th><th class="num">CPL</th>
+              <th class="num">CTR</th><th class="num">Conv</th><th class="num">CPL</th><th>Link</th>
             </tr></thead>
             <tbody></tbody>
           </table>
         </div>
+        <div id="ttAdsInsight" class="notice success" style="margin-top:14px;"></div>
       </div>
 
       <div class="card section">
         <div class="card-title">Зведення TikTok кабінет vs GA4 (source=tiktok)
-          <span class="hint">щоб бачити різницю в атрибуції</span>
+          <span class="hint">кабінетні ← звіти TikTok Marketing API; GA4 ← utm_source=tiktok&amp;utm_medium=cpc</span>
+        </div>
+        <div class="notice" style="margin-bottom:14px;">
+          <b>Чому цифри різні:</b> кабінет = клікі TikTok всередині платформи, GA4 sessions = візити на сайт (можуть бути втрачені через blockers / UTM hygiene). Кабінет conv = реєстрації через pixel, GA4 conv = event count (вкл. duplicate fires). Для фінансів — кабінет; для продуктової аналітики — GA4.
         </div>
         <div class="grid grid-3" id="ttReconcile"></div>
       </div>
@@ -498,32 +535,40 @@
          ============================================================ -->
     <section class="tab-panel" data-panel="audience">
       <div class="page-head">
-        <h1 class="page-title">Audience <span>Insights</span></h1>
-        <div class="page-subtitle">Демографія, гео, девайси, мови. Дані з GA4 з обмеженнями privacy thresholds.</div>
+        <h1 class="page-title">Аудиторія <span>та поведінка</span></h1>
+        <div class="page-subtitle">Девайси, географія, мови, час доби. Дані з GA4 з обмеженнями privacy thresholds для невеликих сегментів.</div>
       </div>
 
       <div class="grid grid-3 section">
         <div class="card">
           <div class="card-title">Девайси
-            <span class="hint">30d</span>
+            <span class="hint">30d, частка сесій</span>
           </div>
-          <div class="chart-box sm"><canvas id="audDevice"></canvas></div>
-          <table class="t" id="audDeviceTable" style="margin-top:10px;">
-            <thead><tr><th>Device</th><th>OS</th><th class="num">Сесії</th><th class="num">Bounce</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="chart-box"><canvas id="audDevice"></canvas></div>
         </div>
         <div class="card">
           <div class="card-title">Топ країн
-            <span class="hint">90d</span>
+            <span class="hint">90d, обрізано до 12</span>
           </div>
-          <div class="chart-box sm"><canvas id="audCountry"></canvas></div>
+          <div class="chart-box"><canvas id="audCountry"></canvas></div>
         </div>
         <div class="card">
-          <div class="card-title">Топ міст
-            <span class="hint">30d, Україна</span>
+          <div class="card-title">Топ міст України
+            <span class="hint">30d</span>
           </div>
-          <div class="chart-box sm"><canvas id="audCity"></canvas></div>
+          <div class="chart-box"><canvas id="audCity"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Девайси × OS · детально
+          <span class="hint">30d, з bounce rate</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="audDeviceTable">
+            <thead><tr><th>Device</th><th>OS</th><th class="num">Сесії</th><th class="num">Активних</th><th class="num">Bounce</th><th class="num">% від total</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
 
@@ -560,11 +605,19 @@
           <div class="chart-box"><canvas id="audLang"></canvas></div>
         </div>
         <div class="card">
-          <div class="card-title">Час доби × день тижня
-            <span class="hint">heat-mapу немає, поки два графіки</span>
+          <div class="card-title">Активність по годинах доби
+            <span class="hint">30d, Україна, час за UTC+2</span>
           </div>
           <div class="chart-box"><canvas id="audHourDow"></canvas></div>
+          <div id="audHourInsight" class="notice success" style="margin-top:10px;"></div>
         </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Активність по днях тижня
+          <span class="hint">30d</span>
+        </div>
+        <div class="chart-box sm"><canvas id="audDow"></canvas></div>
       </div>
     </section>
 
@@ -573,19 +626,45 @@
          ============================================================ -->
     <section class="tab-panel" data-panel="insights">
       <div class="page-head">
-        <h1 class="page-title">Insights &amp; <span>Anomalies</span></h1>
-        <div class="page-subtitle">Системні висновки + чекліст якості трекінгу + воронка реєстрацій.</div>
+        <h1 class="page-title">Інсайти та <span>аномалії</span></h1>
+        <div class="page-subtitle">Системні висновки, чекліст трекінгу, воронка реєстрацій з drop-rate, шлях клієнта по каналах.</div>
       </div>
 
       <div class="card section">
-        <div class="card-title">Воронка реєстрацій (90d)
-          <span class="hint">з GA4 events</span>
+        <div class="card-title">Воронка реєстрації креатора (90d)
+          <span class="hint">з GA4 signup_funnel · % від попер. = drop-off</span>
+        </div>
+        <div class="notice" style="margin-bottom:14px;">
+          <b>Як читати:</b> "Унікальних юзерів" — реальна кількість людей, що спрацювала подію (не event count). "% від попер." — який відсоток дійшов до наступного кроку. Чим менше — тим більше падає юзерів на цьому кроці.
         </div>
         <div class="table-wrap">
           <table class="t" id="funnelTable">
-            <thead><tr><th>Подія</th><th class="num">Event count</th><th class="num">Унікальних юзерів</th><th class="num">Конверсій</th><th class="num">% від попер.</th></tr></thead>
+            <thead><tr><th>Крок</th><th>Подія</th><th class="num">Event count</th><th class="num">Унікальних юзерів</th><th class="num">% від попер.</th><th class="num">Конв event</th></tr></thead>
             <tbody></tbody>
           </table>
+        </div>
+        <div id="funnelInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Шлях клієнта · реклама vs органіка
+          <span class="hint">з утм + GA4 channels</span>
+        </div>
+        <div class="grid grid-2" id="channelPath"></div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Топ-3 креативи / ключі що дають результат
+            <span class="hint">за CPL та CR · масштабуй ці</span>
+          </div>
+          <div id="topPerformers"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Топ-3 що з'їдають бюджет без результату
+            <span class="hint">висока spend, низькі conv · ріж або фіксуй</span>
+          </div>
+          <div id="bottomPerformers"></div>
         </div>
       </div>
 
@@ -601,10 +680,12 @@
       </div>
 
       <div class="card section">
-        <div class="card-title">Топ-20 подій GA4 (30d)</div>
-        <div class="scroll-h">
+        <div class="card-title">Топ-25 подій GA4 (30d)
+          <span class="hint">що реально стріляє</span>
+        </div>
+        <div class="table-wrap">
           <table class="t" id="eventsTable">
-            <thead><tr><th>Event</th><th class="num">Count</th><th class="num">Конв</th><th class="num">Unique users</th></tr></thead>
+            <thead><tr><th>Event</th><th class="num">Event count</th><th class="num">Помічено як conv</th><th class="num">Унікальних users</th><th class="num">Avg per user</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -614,7 +695,10 @@
   </main>
 
   <footer class="footer">
-    <div>pin.top · Marketing Intelligence Dashboard · оновлено <span id="updatedAt"></span></div>
+    <div class="footer-brand">
+      <img src="./logo-icon.png" alt="pin.top" class="footer-logo-img">
+      <span>pin.top · Marketing Intelligence Dashboard · оновлено <span id="updatedAt"></span></span>
+    </div>
     <div class="src-row">
       <span>GA4 property <b>358528411</b></span>
       <span>Google Ads <b>3651749366</b></span>
