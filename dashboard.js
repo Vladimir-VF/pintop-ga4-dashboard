@@ -2012,6 +2012,132 @@ function renderAll() {
   renderActiveTab(activeTab);
 }
 
+function renderRegistrations() {
+  const R = D.registrations || {};
+  if (!R.unique_registered) {
+    $('kpiReg').innerHTML = '<div class="notice warning">Дані реєстрацій не завантажено. Перевір чи файл pintop_user_id_all.csv в Аналітика/ свіжий.</div>';
+    return;
+  }
+  const f = R.funnel || {};
+  const crGoto = f.goto_sign ? (f.auth_success_unique / f.goto_sign * 100) : 0;
+  const crPolicy = f.policy ? (f.auth_success_unique / f.policy * 100) : 0;
+
+  $('regSubtitle').textContent = `Унікальних реєстрантів: ${R.unique_registered.toLocaleString('uk-UA')} · ${R.total_events.toLocaleString('uk-UA')} events total`;
+
+  $('kpiReg').innerHTML = [
+    kpiCard({ color: 'green', label: 'Унікальних реєстрацій', val: fmtN(R.unique_registered), sub: 'auth_success=yes, dedupe by user_id' }),
+    kpiCard({ color: 'purple', label: 'Почали sign-up', val: fmtN(f.goto_sign), sub: `CR до завершення: ${crGoto.toFixed(0)}%` }),
+    kpiCard({ color: 'pink', label: 'Бренди (B2B)', val: fmtN(f.business_done), sub: `${R.unique_registered ? ((f.business_done/R.unique_registered)*100).toFixed(0) : 0}% від всіх` }),
+    kpiCard({ color: 'blue', label: 'Креатори (talag+infag)', val: fmtN(f.talag_done + f.infag_done), sub: 'з чітким creator tag' }),
+  ].join('');
+
+  // Monthly chart
+  const monthly = R.monthly || [];
+  destroy('regMonthly');
+  charts.regMonthly = new Chart($('regMonthly'), {
+    type: 'bar',
+    data: {
+      labels: monthly.map(r => r.m),
+      datasets: [{
+        label: 'Унікальні реєстрації',
+        data: monthly.map(r => r.u),
+        backgroundColor: monthly.map(r => r.u >= 300 ? '#06D6A0' : r.u >= 100 ? '#7C3AED' : '#3B82F6'),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: gridScale(), y: gridScale() },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y} реєстрацій · ${ctx.label}` } } },
+    },
+  });
+
+  // Monthly insight
+  const peakM = monthly.reduce((m, x) => x.u > (m.u || 0) ? x : m, {});
+  const latestM = monthly[monthly.length - 1];
+  $('regMonthlyInsight').innerHTML = `
+    🏆 <b>Пік:</b> ${peakM.m} — <b>${peakM.u}</b> реєстрацій (це коли активно працював TikTok Lead gen 08.02 з CPL $1.90).
+    📅 <b>Останній місяць:</b> ${latestM?.m} — ${latestM?.u} реєстрацій (якщо місяць неповний — відобразиться нижча цифра).
+  `;
+
+  // First touch donut
+  const ft = R.first_touch || [];
+  const ftColors = ['#7C3AED', '#3B82F6', '#06D6A0', '#BE1C9A', '#F59E0B', '#F87171', '#14b8a6', '#ec4899', '#84cc16', '#60a5fa'];
+  destroy('regFirstTouch');
+  charts.regFirstTouch = new Chart($('regFirstTouch'), {
+    type: 'doughnut',
+    data: { labels: ft.map(x => x.ch), datasets: [{ data: ft.map(x => x.u), backgroundColor: ftColors, borderColor: '#141414', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } }, cutout: '62%' },
+  });
+  const ftTotal = ft.reduce((a, x) => a + x.u, 0);
+  $('regFirstTouchTable').querySelector('tbody').innerHTML = ft.map((x, i) => `
+    <tr>
+      <td><span class="dot" style="background:${ftColors[i % ftColors.length]}"></span>${x.ch}</td>
+      <td class="num">${fmtN(x.u)}</td>
+      <td class="num"><b>${(x.u/ftTotal*100).toFixed(1)}%</b></td>
+    </tr>`).join('');
+
+  // Last touch donut
+  const lt = R.last_touch || [];
+  destroy('regLastTouch');
+  charts.regLastTouch = new Chart($('regLastTouch'), {
+    type: 'doughnut',
+    data: { labels: lt.map(x => x.ch), datasets: [{ data: lt.map(x => x.u), backgroundColor: ftColors, borderColor: '#141414', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } }, cutout: '62%' },
+  });
+  const ltTotal = lt.reduce((a, x) => a + x.u, 0);
+  $('regLastTouchTable').querySelector('tbody').innerHTML = lt.map((x, i) => `
+    <tr>
+      <td><span class="dot" style="background:${ftColors[i % ftColors.length]}"></span>${x.ch}</td>
+      <td class="num">${fmtN(x.u)}</td>
+      <td class="num"><b>${(x.u/ltTotal*100).toFixed(1)}%</b></td>
+    </tr>`).join('');
+
+  // Funnel table
+  const funnelSteps = [
+    { step: '1. Клік на "Sign up"', val: f.goto_sign, desc: 'перехід на sign-up сторінку (event)', prev: null },
+    { step: '2. Прийняв політику', val: f.policy, desc: 'чекбокс Terms accepted', prev: f.goto_sign },
+    { step: '3. Завершив auth (events)', val: f.auth_success_events, desc: 'всі спрацьовування (з дублями)', prev: f.policy },
+    { step: '3a. Унікальні реєстрації', val: f.auth_success_unique, desc: '🎯 <b>реальні user_id</b>', prev: f.goto_sign },
+    { step: '4a. Креатори (talag)', val: f.talag_done, desc: 'talent-agent creator реєстрація', prev: f.auth_success_unique },
+    { step: '4b. Креатори (infag)', val: f.infag_done, desc: 'influence-agent creator', prev: f.auth_success_unique },
+    { step: '4c. Бренди', val: f.business_done, desc: 'brand sign-up завершено', prev: f.auth_success_unique },
+    { step: '5. Додали pin після реєстрації', val: f.addpin, desc: 'активація продукту', prev: null },
+    { step: '— guest mode', val: f.guest_done, desc: 'не зареєструвались, дивились як гість', prev: null },
+  ];
+  $('regFunnelTable').querySelector('tbody').innerHTML = funnelSteps.map(s => {
+    const cr = s.prev && s.prev > 0 ? ((s.val / s.prev) * 100).toFixed(0) + '%' : '—';
+    const crCls = !s.prev ? 'gray' : (s.val / s.prev) < 0.3 ? 'red' : (s.val / s.prev) < 0.6 ? 'amber' : 'green';
+    return `
+      <tr>
+        <td><b>${s.step}</b></td>
+        <td class="num"><b>${fmtN(s.val)}</b></td>
+        <td class="num">${s.prev ? `<span class="badge ${crCls}">${cr}</span>` : '<span class="muted">—</span>'}</td>
+        <td class="muted">${s.desc}</td>
+      </tr>`;
+  }).join('');
+
+  const goto = f.goto_sign || 0;
+  const auth = f.auth_success_unique || 0;
+  const drop = goto ? (100 - (auth / goto * 100)).toFixed(0) : 0;
+  $('regFunnelInsight').innerHTML = `
+    <b>🔑 Головний висновок:</b> ${goto.toLocaleString()} людей натиснули "Sign up", <b>${auth.toLocaleString()}</b> завершили реєстрацію.
+    <b style="color:var(--red);">Drop ${drop}%</b> на переході — це найбільша діра воронки pin.top.<br>
+    Бренди становлять ${auth ? ((f.business_done / auth) * 100).toFixed(0) : 0}% реєстрацій (${f.business_done}), креатори ${auth ? (((f.talag_done + f.infag_done) / auth) * 100).toFixed(0) : 0}% (${f.talag_done + f.infag_done}). Решта — generic без tag або guest mode.
+  `;
+
+  // Top campaigns
+  const tc = R.top_campaigns_first || [];
+  const tcTotal = tc.reduce((a, x) => a + x.u, 0);
+  $('regCampTable').querySelector('tbody').innerHTML = tc.map(c => `
+    <tr>
+      <td><b>${c.camp.length > 60 ? c.camp.slice(0,60)+'…' : c.camp}</b></td>
+      <td class="num">${fmtN(c.u)}</td>
+      <td class="num">${tcTotal ? ((c.u/tcTotal)*100).toFixed(1) + '%' : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="muted" style="text-align:center;">Немає campaign даних</td></tr>';
+}
+
 function renderActiveTab(tab) {
   // Фільтр каналів має сенс тільки на Overview
   const wrap = $('chFilterWrap');
@@ -2027,6 +2153,7 @@ function renderActiveTab(tab) {
       case 'utm': renderUtm(); break;
       case 'organic': renderGsc(); break;
       case 'audience': renderAudience(); break;
+      case 'registrations': renderRegistrations(); break;
       case 'insights': renderInsights(); break;
     }
   } catch (err) {

@@ -79,6 +79,7 @@
         <button class="tab" data-tab="utm"><span class="tab-ic">⇒</span>UTM &amp; Attr.</button>
         <button class="tab" data-tab="organic"><span class="tab-ic">⌕</span>Organic &amp; GSC</button>
         <button class="tab" data-tab="audience"><span class="tab-ic">◯</span>Audience</button>
+        <button class="tab" data-tab="registrations"><span class="tab-ic">✓</span>Registrations</button>
         <button class="tab" data-tab="insights"><span class="tab-ic">★</span>Insights</button>
       </nav>
     </div>
@@ -695,6 +696,80 @@
     </section>
 
     <!-- ============================================================
+         REGISTRATIONS (BigQuery GA4 export)
+         ============================================================ -->
+    <section class="tab-panel" data-panel="registrations">
+      <div class="page-head">
+        <h1 class="page-title">Реальні <span>реєстрації</span></h1>
+        <div class="page-subtitle" id="regSubtitle"></div>
+      </div>
+
+      <div class="notice">
+        <b>Джерело:</b> <a href="https://docs.google.com/spreadsheets/d/15pYnzOjKvNMlU9HgTCNdLgonQFwWhtNjcgVgAOpSOU4" target="_blank" style="color:var(--green);">Google Sheet pintop_user_id_all</a> (BigQuery GA4 export).
+        <b>Затримка даних:</b> ~2 дні. Sheet оновлюється щоденно, дашборд тягне свіжу копію при кожному refresh.
+        <br><b>Головне:</b> тут видно <b>унікальних реальних людей</b> що завершили реєстрацію (auth_success=yes), а не event count як у GA4 чи pixel hits у кабінетах.
+      </div>
+
+      <div class="grid grid-4 section" id="kpiReg"></div>
+
+      <div class="card section">
+        <div class="card-title">Місячна динаміка реєстрацій
+          <span class="hint">унікальні користувачі, що завершили auth</span>
+        </div>
+        <div class="chart-box lg"><canvas id="regMonthly"></canvas></div>
+        <div id="regMonthlyInsight" class="notice success" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">First-touch attribution
+            <span class="hint">з якого каналу вперше прийшли</span>
+          </div>
+          <div class="chart-box sm"><canvas id="regFirstTouch"></canvas></div>
+          <table class="t tight" id="regFirstTouchTable" style="margin-top:10px;">
+            <thead><tr><th>Канал</th><th class="num">Users</th><th class="num">%</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Last-touch attribution
+            <span class="hint">з якого каналу прийшли саме в момент реєстрації</span>
+          </div>
+          <div class="chart-box sm"><canvas id="regLastTouch"></canvas></div>
+          <table class="t tight" id="regLastTouchTable" style="margin-top:10px;">
+            <thead><tr><th>Канал</th><th class="num">Users</th><th class="num">%</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Воронка реєстрації
+          <span class="hint">events · conversion rate між кроками</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="regFunnelTable">
+            <thead><tr><th>Крок</th><th class="num">Events</th><th class="num">CR від попер.</th><th>Що це</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="regFunnelInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">Топ кампаній що привели реєстрації (first-touch)
+          <span class="hint">найефективніші paid-source запуски</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="regCampTable">
+            <thead><tr><th>Кампанія</th><th class="num">Реєстрацій</th><th class="num">%</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
          INSIGHTS & ANOMALIES
          ============================================================ -->
     <section class="tab-panel" data-panel="insights">
@@ -788,7 +863,7 @@
 
 </div>
 
-<script src="./data.js?v=3.0"></script>
-<script src="./dashboard.js?v=3.0"></script>
+<script src="./data.js?v=3.1"></script>
+<script src="./dashboard.js?v=3.1"></script>
 </body>
 </html>
