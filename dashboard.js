@@ -412,15 +412,21 @@ function renderOverview() {
   const utmSorted = D.ga4.utm
     .filter(u => chIsSelected(utmToChannel(u.src, u.med)))
     .sort((a,b) => b.s - a.s).slice(0, 12);
-  $('overviewSources').querySelector('tbody').innerHTML = utmSorted.map(u => `
+  $('overviewSources').querySelector('tbody').innerHTML = utmSorted.map(u => {
+    const er = u.s ? (u.es / u.s) : 0;
+    const erCls = er > 0.6 ? 'green' : er > 0.35 ? 'amber' : 'red';
+    return `
     <tr>
       <td><b>${u.src}</b> / ${u.med}</td>
-      <td><span class="badge gray">${u.camp.length > 30 ? u.camp.slice(0,30)+'…' : u.camp}</span></td>
+      <td><span class="badge gray">${u.camp.length > 28 ? u.camp.slice(0,28)+'…' : u.camp}</span></td>
       <td class="num">${fmtN(u.s)}</td>
       <td class="num">${fmtN(u.nu)}</td>
+      <td class="num">${fmtN(u.es)}</td>
+      <td class="num"><span class="badge ${erCls}">${fmtPct(er)}</span></td>
+      <td class="num">${fmtDur(u.asd)}</td>
       <td class="num">${fmtN(u.c)}</td>
-      <td class="num">${u.s ? fmtPct(u.c/u.s) : '—'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   // Monthly chart
   const monthly = D.ga4.monthly.slice().sort((a,b) => (a.y+a.m).localeCompare(b.y+b.m)).slice(-12);
@@ -566,8 +572,8 @@ function renderPaid() {
       </div>
       <div class="paid-metric-row">
         <div class="paid-metric"><div class="l">Spend USD</div><div class="v">${fmtUsd(gd.sum.spend_usd)}</div></div>
-        <div class="paid-metric"><div class="l">Spend AED</div><div class="v">${fmtAed(gd.sum.spend_aed)}</div></div>
         <div class="paid-metric"><div class="l">Imp</div><div class="v">${fmtN(gd.sum.imp)}</div></div>
+        <div class="paid-metric"><div class="l">CPM USD</div><div class="v">${gd.sum.imp ? fmtUsd(gd.sum.spend_usd / gd.sum.imp * 1000) : '—'}</div></div>
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(gd.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${gd.sum.imp ? fmtPct(gd.sum.clk/gd.sum.imp) : '—'}</div></div>
         <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${gd.sum.clk ? fmtUsd(gd.sum.spend_usd/gd.sum.clk) : '—'}</div></div>
@@ -583,8 +589,8 @@ function renderPaid() {
       </div>
       <div class="paid-metric-row">
         <div class="paid-metric"><div class="l">Spend USD</div><div class="v">${fmtUsd(td.sum.spend)}</div></div>
-        <div class="paid-metric"><div class="l">Avg/день</div><div class="v">${fmtUsd(td.sum.spend / Math.max(1, Object.keys(td.byDay).length))}</div></div>
         <div class="paid-metric"><div class="l">Imp</div><div class="v">${fmtN(td.sum.imp)}</div></div>
+        <div class="paid-metric"><div class="l">CPM USD</div><div class="v">${td.sum.imp ? fmtUsd(td.sum.spend / td.sum.imp * 1000) : '—'}</div></div>
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(td.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${td.sum.imp ? fmtPct(td.sum.clk/td.sum.imp) : '—'}</div></div>
         <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${td.sum.clk ? fmtUsd(td.sum.spend/td.sum.clk) : '—'}</div></div>
@@ -722,12 +728,13 @@ function renderGads() {
   const cpcUsd = totalClk ? totalSpendUsd/totalClk : 0;
 
   const activeCount = allCamps.filter(c => c.status === 'ENABLED').length;
+  const cpmUsd = totalImp ? totalSpendUsd / totalImp * 1000 : 0;
   $('kpiGads').innerHTML = [
     kpiCard({ color: 'green', label: 'Spend USD', val: fmtUsd(totalSpendUsd), sub: fmtAed(totalSpendAed) }),
     kpiCard({ color: 'purple', label: 'Активних', val: activeCount, sub: `${allCamps.length} всього в акаунті` }),
     kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
     kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
-    kpiCard({ color: 'pink', label: 'Avg CPC USD', val: fmtUsd(cpcUsd) }),
+    kpiCard({ color: 'pink', label: 'CPC USD', val: fmtUsd(cpcUsd), sub: `CPM ${fmtUsd(cpmUsd)}` }),
     kpiCard({ color: 'teal', label: 'Avg Imp Share', val: fmtPct(avgIs), sub: 'Search кампанії' }),
   ].join('');
 
@@ -847,12 +854,13 @@ function renderGads() {
       <td class="muted" title="${g.campaign_name}">${g.campaign_name.slice(0, 30)}</td>
       <td class="num"><b>${fmtUsd(g.cost_usd)}</b></td>
       <td class="num">${fmtN(g.imp)}</td>
+      <td class="num">${g.imp ? fmtUsd(g.cost_usd/g.imp*1000) : '—'}</td>
       <td class="num">${fmtN(g.clk)}</td>
       <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
       <td class="num">${g.clk ? fmtUsd(g.cost_usd/g.clk) : '—'}</td>
       <td class="num">${fmtN(g.conv)}</td>
       <td class="num">${g.conv ? `<span class="badge ${g.cost_usd/g.conv < 1 ? 'green' : g.cost_usd/g.conv < 3 ? 'amber' : 'red'}">${fmtUsd(g.cost_usd/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
-    </tr>`).join('') || '<tr><td colspan="9" class="muted" style="text-align:center;padding:20px;">Немає adgroups за фільтром</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:20px;">Немає adgroups за фільтром</td></tr>';
 
   // Ad group insight
   const gAgWin = agsFiltered.filter(g => g.conv >= 5).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 3);
@@ -946,12 +954,13 @@ function renderTikTok() {
   const cpl = totalConv ? totalSpend/totalConv : 0;
   const activeCampsNum = camplist.filter(c => c.status && c.status.includes('ENABLE')).length;
 
+  const ttCpm = totalImp ? totalSpend / totalImp * 1000 : 0;
   $('kpiTikTok').innerHTML = [
     kpiCard({ color: 'pink', label: 'Spend USD', val: fmtUsd(totalSpend), sub: '30 днів' }),
     kpiCard({ color: 'green', label: 'Активних', val: activeCampsNum, sub: `${camplist.length} всього в акаунті` }),
     kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
     kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
-    kpiCard({ color: 'purple', label: 'CPC USD', val: cpc ? fmtUsd(cpc) : '—' }),
+    kpiCard({ color: 'purple', label: 'CPC USD', val: cpc ? fmtUsd(cpc) : '—', sub: `CPM ${ttCpm ? fmtUsd(ttCpm) : '—'}` }),
     kpiCard({ color: 'teal', label: 'CPL USD', val: cpl ? fmtUsd(cpl) : '—', sub: `${fmtN(totalConv)} конв з pixel` }),
   ].join('');
 
@@ -1104,13 +1113,14 @@ function renderTikTok() {
         <td><span class="status-pill ${isActive ? 'live' : 'paused'}">${isActive ? 'active' : 'paused'}</span></td>
         <td class="num"><b>${fmtUsd(g.spend)}</b></td>
         <td class="num">${fmtN(g.imp)}</td>
+        <td class="num">${g.imp ? fmtUsd(g.spend/g.imp*1000) : '—'}</td>
         <td class="num">${fmtN(g.clk)}</td>
         <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
         <td class="num">${g.clk ? fmtUsd(g.spend/g.clk) : '—'}</td>
         <td class="num">${fmtN(g.conv)}</td>
         <td class="num">${g.conv ? `<span class="badge ${g.spend/g.conv < 3 ? 'green' : g.spend/g.conv < 6 ? 'amber' : 'red'}">${fmtUsd(g.spend/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
       </tr>`;
-  }).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:20px;">Немає adsets за обраним фільтром</td></tr>';
+  }).join('') || '<tr><td colspan="11" class="muted" style="text-align:center;padding:20px;">Немає adsets за обраним фільтром</td></tr>';
 
   // Ad Groups insight
   const agWin = agsFiltered.filter(g => g.conv >= 3).sort((a,b) => (a.spend/a.conv) - (b.spend/b.conv)).slice(0, 3);
