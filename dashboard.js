@@ -21,10 +21,36 @@ async function sha256(str) {
 }
 
 const KEY = 'pintop_dash_unlocked_v2';
-function unlock() {
+
+function runLoader(done) {
+  const loader = document.getElementById('loader');
+  const sub = document.getElementById('loaderSub');
+  loader.style.display = 'flex';
+  const steps = [
+    { t: 0,    msg: 'Синхронізую GA4…' },
+    { t: 380,  msg: 'Тягну Google Ads…' },
+    { t: 760,  msg: 'Тягну TikTok Ads…' },
+    { t: 1100, msg: 'Зводжу UTM та Search Console…' },
+    { t: 1500, msg: 'Готово · відкриваю дашборд' },
+  ];
+  steps.forEach(s => setTimeout(() => { sub.textContent = s.msg; }, s.t));
+  setTimeout(() => {
+    loader.classList.add('hide');
+    setTimeout(() => { loader.style.display = 'none'; done && done(); }, 450);
+  }, 1850);
+}
+
+function unlock({ animate } = { animate: true }) {
   document.getElementById('gate').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  initApp();
+  if (animate) {
+    runLoader(() => {
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    });
+  } else {
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  }
 }
 
 async function tryGate() {
@@ -32,7 +58,7 @@ async function tryGate() {
   const h = await sha256(pwd);
   if (h === PASS_HASH) {
     sessionStorage.setItem(KEY, '1');
-    unlock();
+    unlock({ animate: true });
   } else {
     document.getElementById('gateErr').classList.add('show');
   }
@@ -44,7 +70,8 @@ document.getElementById('gatePass').addEventListener('keypress', e => {
 });
 
 if (sessionStorage.getItem(KEY) === '1') {
-  unlock();
+  // Якщо в session вже розблоковано — без довгої анімації, тільки коротка перевірка
+  unlock({ animate: false });
 }
 
 // ============================================================

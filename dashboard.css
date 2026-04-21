@@ -213,6 +213,120 @@ button {
 .gate-err.show { display: block; }
 
 /* ============================================================
+   LOADER (between gate and app)
+   ============================================================ */
+.loader {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #141826 0%, #0a0a0a 80%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  animation: loaderFadeIn .3s ease;
+}
+.loader.hide { animation: loaderFadeOut .45s ease forwards; }
+@keyframes loaderFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes loaderFadeOut { to { opacity: 0; visibility: hidden; } }
+
+.loader-stage {
+  position: relative;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.loader-channels {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin-bottom: 4px;
+}
+.lc-ray {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--c));
+  transform-origin: left center;
+  transform: translate(0, -50%) rotate(var(--r)) translateX(0);
+  opacity: 0;
+  animation: rayConverge 1.6s cubic-bezier(.55, .2, .4, 1) var(--d) infinite;
+  box-shadow: 0 0 18px var(--c);
+}
+@keyframes rayConverge {
+  0%   { transform: translate(0, -50%) rotate(var(--r)) translateX(80px) scaleX(0.4); opacity: 0; }
+  30%  { opacity: 1; transform: translate(0, -50%) rotate(var(--r)) translateX(60px) scaleX(0.9); }
+  65%  { opacity: 1; transform: translate(0, -50%) rotate(var(--r)) translateX(0) scaleX(1); }
+  85%  { opacity: .6; transform: translate(0, -50%) rotate(var(--r)) translateX(-6px) scaleX(0.2); }
+  100% { opacity: 0; transform: translate(0, -50%) rotate(var(--r)) translateX(-10px) scaleX(0.0); }
+}
+.loader-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  border-radius: 16px;
+  background: white;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(6, 214, 160, .4), 0 0 0 2px rgba(255,255,255,.05);
+  animation: logoPulse 1.6s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.08); }
+}
+.loader-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: white;
+  margin-top: 10px;
+}
+.loader-title span {
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.loader-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  min-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: opacity .25s;
+}
+.loader-bar {
+  width: 220px;
+  height: 3px;
+  background: rgba(255,255,255,.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.loader-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--green), var(--purple), var(--pink));
+  border-radius: 2px;
+  animation: barFill 1.8s ease forwards;
+}
+@keyframes barFill {
+  0% { width: 0; }
+  30% { width: 35%; }
+  60% { width: 68%; }
+  85% { width: 92%; }
+  100% { width: 100%; }
+}
+
+/* ============================================================
    TOP NAV
    ============================================================ */
 
