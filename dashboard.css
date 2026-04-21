@@ -472,7 +472,12 @@ button {
   border-radius: var(--radius-lg);
   padding: 20px 22px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
+/* Кожна grid-колонка стає stretch — щоб картки в ряду були однакової висоти */
+.grid > * { display: flex; flex-direction: column; }
+.grid > .card { height: 100%; }
 
 .card-title {
   font-size: var(--fs-md);
@@ -642,6 +647,16 @@ button {
   max-height: 480px;
   overflow-y: auto;
 }
+/* Channels supporting list — compact, обмежена висота */
+.channels-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 12px;
+  max-height: 240px;
+}
+.channels-list-wrap .t tbody td { padding: 7px 8px; }
+.channels-list-wrap::-webkit-scrollbar { width: 4px; }
+.channels-list-wrap::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 .scroll-h::-webkit-scrollbar { width: 6px; }
 .scroll-h::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 
@@ -681,11 +696,13 @@ button {
   position: relative;
   height: 320px;
   margin-top: 8px;
+  flex-shrink: 0;
 }
 .chart-box.xs { height: 180px; }
 .chart-box.sm { height: 240px; }
 .chart-box.lg { height: 400px; }
 .chart-box.xl { height: 460px; }
+.chart-box.flex { height: auto; min-height: 240px; flex: 1; }
 
 /* ============================================================
    INSIGHT / NOTE BOXES
@@ -729,7 +746,11 @@ button {
   padding: 16px 18px;
   position: relative;
   padding-left: 48px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
+.insight-row > * { display: flex; }
 .insight::before {
   content: attr(data-ic);
   position: absolute;
@@ -755,7 +776,11 @@ button {
   padding: 20px 22px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
+.grid > .paid-card { height: 100%; }
 .paid-card::after {
   content: '';
   position: absolute;

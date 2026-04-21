@@ -111,17 +111,19 @@
           <div class="card-title">Динаміка трафіку та конверсій
             <span class="hint" id="trendRange"></span>
           </div>
-          <div class="chart-box lg"><canvas id="overviewTrend"></canvas></div>
+          <div class="chart-box flex"><canvas id="overviewTrend"></canvas></div>
         </div>
         <div class="card">
           <div class="card-title">Канали трафіку
             <span class="hint">частка сесій</span>
           </div>
-          <div class="chart-box"><canvas id="overviewChannels"></canvas></div>
-          <table class="t tight" id="overviewChannelsTable" style="margin-top:10px;">
-            <thead><tr><th>Канал</th><th class="num">Сесії</th><th class="num">%</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="chart-box sm"><canvas id="overviewChannels"></canvas></div>
+          <div class="channels-list-wrap">
+            <table class="t tight" id="overviewChannelsTable">
+              <thead><tr><th>Канал</th><th class="num">Сесії</th><th class="num">%</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
 

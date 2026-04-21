@@ -1476,18 +1476,25 @@ function renderAudience() {
     `;
   }
 
-  // DOW chart
+  // DOW chart — GA4 convention: 0=Sunday ... 6=Saturday
   destroy('audDow');
   if (dow.length) {
-    const dowOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const dowMap = Object.fromEntries(dow.map(d => [d.d, d.s]));
-    const dowSorted = dowOrder.filter(d => dowMap[d] != null);
+    const dowNames = { '0': 'Нд', '1': 'Пн', '2': 'Вт', '3': 'Ср', '4': 'Чт', '5': 'Пт', '6': 'Сб' };
+    const order = ['1', '2', '3', '4', '5', '6', '0']; // Mon-Sun
+    const dowMap = Object.fromEntries(dow.map(d => [String(d.d).trim(), d.s]));
+    const labels = order.map(k => dowNames[k]);
+    const dataArr = order.map(k => dowMap[k] || 0);
     charts.audDow = new Chart($('audDow'), {
       type: 'bar',
-      data: { labels: dowSorted, datasets: [{ label: 'Сесії', data: dowSorted.map(d => dowMap[d] || 0), backgroundColor: '#7C3AED' }] },
+      data: { labels, datasets: [{
+        label: 'Сесії',
+        data: dataArr,
+        backgroundColor: order.map(k => k === '0' || k === '6' ? '#BE1C9A' : '#7C3AED'),
+      }] },
       options: { responsive: true, maintainAspectRatio: false,
         scales: { x: gridScale(), y: gridScale() },
-        plugins: { legend: { display: false } } },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: ctx => `${fmtN(ctx.parsed.y)} сесій · ${ctx.label}` } } } },
     });
   }
 }
