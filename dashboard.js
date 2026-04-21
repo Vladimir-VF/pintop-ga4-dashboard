@@ -1837,7 +1837,6 @@ function initApp() {
   const ch30 = D.ga4.channels_30d;
   $('chFilter').innerHTML = '<option value="">Всі канали</option>' + ch30.map(c => `<option value="${c.ch}">${c.ch}</option>`).join('');
   $('chFilter').addEventListener('change', () => { state.channel = $('chFilter').value; renderAll(); });
-  $('scopeFilter').addEventListener('change', () => { state.scope = $('scopeFilter').value; renderAll(); });
 
   // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
