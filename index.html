@@ -258,6 +258,24 @@
       </div>
 
       <div class="card section">
+        <div class="card-title">Ad Groups · зведено за 30 днів
+          <span class="hint">на рівні adset — що працює, що ні</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="gadsAdGroupsTable">
+            <thead><tr>
+              <th>Ad Group</th><th>Кампанія</th>
+              <th class="num">Spend USD</th><th class="num">Imp</th>
+              <th class="num">Clk</th><th class="num">CTR</th>
+              <th class="num">CPC USD</th><th class="num">Conv</th><th class="num">CPA USD</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="gadsAdGroupsInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card section">
         <div class="card-title">Top-50 ключових слів
           <span class="hint">за spend · 30 днів · клікабельні</span>
         </div>
@@ -329,15 +347,33 @@
       </div>
 
       <div class="card section">
+        <div class="card-title">Ad Groups (adsets) · зведено за 30 днів
+          <span class="hint">саме тут приймаються рішення по бюджетах</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="ttAdGroupsTable">
+            <thead><tr>
+              <th>Ad Group</th><th>Кампанія</th><th>Status</th>
+              <th class="num">Spend</th><th class="num">Imp</th><th class="num">Clk</th>
+              <th class="num">CTR</th><th class="num">CPC</th>
+              <th class="num">Conv</th><th class="num">CPL USD</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="ttAdGroupsInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card section">
         <div class="card-title">Топ-30 креативів (ads)
-          <span class="hint">за spend · тип кампанії = Creators (Sell Hub) / Brands (Buy Hub)</span>
+          <span class="hint">за spend · фільтр Active/All діє на цю таблицю</span>
         </div>
         <div class="table-wrap">
           <table class="t" id="ttAdsTable">
             <thead><tr>
-              <th>Ad name</th><th>Тип</th><th>Кампанія</th>
-              <th class="num">Spend</th><th class="num">Imp</th><th class="num">Clk</th>
-              <th class="num">CTR</th><th class="num">Conv</th><th class="num">CPL</th><th>Link</th>
+              <th>Ad name</th><th>Тип</th><th>Ad Group</th><th>Status</th>
+              <th class="num">Spend</th><th class="num">Clk</th><th class="num">CTR</th>
+              <th class="num">Conv</th><th class="num">CPL USD</th><th>Link</th>
             </tr></thead>
             <tbody></tbody>
           </table>

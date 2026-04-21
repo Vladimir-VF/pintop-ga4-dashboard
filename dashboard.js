@@ -781,6 +781,38 @@ function renderGads() {
     });
   });
 
+  // === Google Ads Ad Groups ===
+  const activeCampIds = new Set(c30.map(c => c.id));
+  const allAgs = D.gads.ad_groups_30d || [];
+  const agsFiltered = state.gadsFilter === 'active'
+    ? allAgs.filter(g => activeCampIds.has(g.campaign_id) && g.cost_usd > 0)
+    : allAgs;
+  const agsSorted = agsFiltered.slice().sort((a,b) => b.cost_usd - a.cost_usd).slice(0, 30);
+  $('gadsAdGroupsTable').querySelector('tbody').innerHTML = agsSorted.map(g => `
+    <tr>
+      <td><b>${g.name}</b></td>
+      <td class="muted" title="${g.campaign_name}">${g.campaign_name.slice(0, 30)}</td>
+      <td class="num"><b>${fmtUsd(g.cost_usd)}</b></td>
+      <td class="num">${fmtN(g.imp)}</td>
+      <td class="num">${fmtN(g.clk)}</td>
+      <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
+      <td class="num">${g.clk ? fmtUsd(g.cost_usd/g.clk) : '—'}</td>
+      <td class="num">${fmtN(g.conv)}</td>
+      <td class="num">${g.conv ? `<span class="badge ${g.cost_usd/g.conv < 1 ? 'green' : g.cost_usd/g.conv < 3 ? 'amber' : 'red'}">${fmtUsd(g.cost_usd/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
+    </tr>`).join('') || '<tr><td colspan="9" class="muted" style="text-align:center;padding:20px;">Немає adgroups за фільтром</td></tr>';
+
+  // Ad group insight
+  const gAgWin = agsFiltered.filter(g => g.conv >= 5).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 3);
+  const gAgBad = agsFiltered.filter(g => g.cost_usd > 20 && g.conv === 0).slice(0, 3);
+  let gAgInsight = '<b>📊 Інсайти по ad groups:</b><br>';
+  if (gAgWin.length) {
+    gAgInsight += `🏆 <b>Кращі CPA:</b> ${gAgWin.map(g => `"${g.name.slice(0, 28)}" CPA ${fmtUsd(g.cost_usd/g.conv)} (${g.conv.toFixed(0)} конв)`).join(' · ')}.`;
+  }
+  if (gAgBad.length) {
+    gAgInsight += `<br>⛔ <b>Без результату:</b> ${gAgBad.map(g => `"${g.name.slice(0, 28)}" (${fmtUsd(g.cost_usd)}, 0 conv)`).join(' · ')}.`;
+  }
+  $('gadsAdGroupsInsight').innerHTML = gAgInsight;
+
   // Top keywords (50, full width with cpc/cpa)
   const kws = D.gads.keywords_30d.slice(0, 50);
   $('gadsKwTable').querySelector('tbody').innerHTML = kws.map(k => `
@@ -980,11 +1012,13 @@ function renderTikTok() {
     });
   });
 
-  // Top ads — sorted by spend, with type and без зайвих tt_item_id "—"
+  // Lookup maps
   const ad_meta = {};
   adslist.forEach(a => { ad_meta[a.id] = a; });
   const camp_meta = {};
   camplist.forEach(c => { camp_meta[c.id] = c; });
+  const ag_meta = {};
+  (D.tiktok.adgroups_list || []).forEach(g => { ag_meta[g.id] = g; });
 
   function classifyByName(name) {
     const n = (name || '').toLowerCase();
@@ -994,44 +1028,93 @@ function renderTikTok() {
     return { lbl: 'Other', cls: 'gray' };
   }
 
-  // Find campaign name by ad
-  function getCampForAd(ad) {
-    const adMeta = ad_meta[String(ad.ad_id)];
-    if (adMeta && adMeta.campaign_id) {
-      const cMeta = camp_meta[adMeta.campaign_id];
-      if (cMeta && cMeta.name) return cMeta.name;
-    }
-    return ad.campaign_name || '—';
-  }
+  // === Ad Groups table (зведено по adset) ===
+  const allAgs = D.tiktok.ad_groups_30d || [];
+  const agsFiltered = state.ttFilter === 'active'
+    ? allAgs.filter(g => {
+        const gMeta = ag_meta[String(g.adgroup_id)];
+        return (gMeta && gMeta.op_status === 'ENABLE') || g.spend > 0;
+      })
+    : allAgs;
 
-  const adsByCpl = ads.slice().sort((a,b) => b.spend - a.spend).slice(0, 30);
+  const agsSorted = agsFiltered.slice().sort((a,b) => b.spend - a.spend);
+  $('ttAdGroupsTable').querySelector('tbody').innerHTML = agsSorted.map(g => {
+    const gMeta = ag_meta[String(g.adgroup_id)] || {};
+    const cMeta = camp_meta[String(g.campaign_id)] || {};
+    const agName = gMeta.name || g.adgroup_name || g.adgroup_id;
+    const campName = cMeta.name || g.campaign_name || '—';
+    const isActive = gMeta.op_status === 'ENABLE';
+    return `
+      <tr>
+        <td><b>${agName}</b></td>
+        <td class="muted" title="${campName}">${campName.slice(0, 32)}</td>
+        <td><span class="status-pill ${isActive ? 'live' : 'paused'}">${isActive ? 'active' : 'paused'}</span></td>
+        <td class="num"><b>${fmtUsd(g.spend)}</b></td>
+        <td class="num">${fmtN(g.imp)}</td>
+        <td class="num">${fmtN(g.clk)}</td>
+        <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
+        <td class="num">${g.clk ? fmtUsd(g.spend/g.clk) : '—'}</td>
+        <td class="num">${fmtN(g.conv)}</td>
+        <td class="num">${g.conv ? `<span class="badge ${g.spend/g.conv < 3 ? 'green' : g.spend/g.conv < 6 ? 'amber' : 'red'}">${fmtUsd(g.spend/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
+      </tr>`;
+  }).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:20px;">Немає adsets за обраним фільтром</td></tr>';
+
+  // Ad Groups insight
+  const agWin = agsFiltered.filter(g => g.conv >= 3).sort((a,b) => (a.spend/a.conv) - (b.spend/b.conv)).slice(0, 3);
+  const agBad = agsFiltered.filter(g => g.spend > 20 && g.conv === 0).slice(0, 3);
+  let agInsight = '<b>📊 Інсайти по adsets:</b><br>';
+  if (agWin.length) {
+    agInsight += `🏆 <b>Кращі CPL:</b> ${agWin.map(g => {
+      const gm = ag_meta[String(g.adgroup_id)] || {};
+      return `"${(gm.name || g.adgroup_id).slice(0, 30)}" CPL ${fmtUsd(g.spend/g.conv)} (${g.conv} конв)`;
+    }).join(' · ')}.`;
+  }
+  if (agBad.length) {
+    agInsight += `<br>⛔ <b>Дорогі без результату:</b> ${agBad.map(g => {
+      const gm = ag_meta[String(g.adgroup_id)] || {};
+      return `"${(gm.name || g.adgroup_id).slice(0, 30)}" (spend ${fmtUsd(g.spend)}, 0 conv)`;
+    }).join(' · ')}. Пауза або зміна.`;
+  }
+  $('ttAdGroupsInsight').innerHTML = agInsight;
+
+  // === Top ads з фільтром за operation_status ===
+  const adsFiltered = state.ttFilter === 'active'
+    ? ads.filter(a => {
+        const m = ad_meta[String(a.ad_id)];
+        return (m && m.op_status === 'ENABLE') || a.spend > 0;
+      })
+    : ads;
+  const adsByCpl = adsFiltered.slice().sort((a,b) => b.spend - a.spend).slice(0, 30);
+
   $('ttAdsTable').querySelector('tbody').innerHTML = adsByCpl.map(a => {
     const m = ad_meta[String(a.ad_id)] || {};
     const itemId = m.item_id;
     const adName = m.name || a.ad_id || '';
-    const campName = getCampForAd(a);
+    const agName = m.adgroup_name || '—';
+    const campName = m.campaign_name || a.campaign_name || '—';
     const type = classifyByName(campName);
+    const isActive = m.op_status === 'ENABLE';
     const link = itemId
       ? `<a href="https://www.tiktok.com/@mypintop_ua/video/${itemId}" target="_blank" style="color:var(--green);text-decoration:underline;font-size:11px;">▶</a>`
       : '<span class="muted">—</span>';
     return `
       <tr>
-        <td title="${adName}"><b>${adName.slice(0, 32)}</b></td>
+        <td title="${adName}"><b>${adName.slice(0, 28)}</b></td>
         <td><span class="badge ${type.cls}">${type.lbl}</span></td>
-        <td class="muted" title="${campName}">${campName.slice(0, 28)}</td>
-        <td class="num">${fmtUsd(a.spend)}</td>
-        <td class="num">${fmtN(a.imp)}</td>
+        <td class="muted" title="${agName}">${agName.slice(0, 22)}</td>
+        <td><span class="status-pill ${isActive ? 'live' : 'paused'}">${isActive ? 'active' : 'paused'}</span></td>
+        <td class="num"><b>${fmtUsd(a.spend)}</b></td>
         <td class="num">${fmtN(a.clk)}</td>
         <td class="num">${a.imp ? fmtPct(a.clk/a.imp) : '—'}</td>
         <td class="num">${fmtN(a.conv)}</td>
-        <td class="num">${a.conv ? fmtUsd(a.spend/a.conv) : '—'}</td>
+        <td class="num">${a.conv ? `<span class="badge ${a.spend/a.conv < 3 ? 'green' : a.spend/a.conv < 6 ? 'amber' : 'red'}">${fmtUsd(a.spend/a.conv)}</span>` : '<span class="muted">—</span>'}</td>
         <td>${link}</td>
       </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:20px;">Немає креативів за обраним фільтром</td></tr>';
 
   // Ad insights TT
-  const winners = ads.filter(a => a.conv >= 5).sort((a,b) => (a.spend/a.conv)-(b.spend/b.conv)).slice(0, 3);
-  const wasteAds = ads.filter(a => a.spend > 15 && a.conv === 0).slice(0, 3);
+  const winners = adsFiltered.filter(a => a.conv >= 3).sort((a,b) => (a.spend/a.conv)-(b.spend/b.conv)).slice(0, 3);
+  const wasteAds = adsFiltered.filter(a => a.spend > 15 && a.conv === 0).slice(0, 3);
   let ttInsightHtml = '<b>🎯 Інсайти креативи TikTok:</b><br>';
   if (winners.length) {
     ttInsightHtml += `🏆 <b>Топ-${winners.length} CPL переможців:</b> ${winners.map(w => {
