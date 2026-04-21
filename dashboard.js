@@ -104,16 +104,13 @@ document.getElementById('gatePass').addEventListener('keypress', e => {
   if (e.key === 'Enter') tryGate();
 });
 
-if (sessionStorage.getItem(KEY) === '1') {
-  // Якщо в session вже розблоковано — без довгої анімації, тільки коротка перевірка
-  unlock({ animate: false });
-}
+// sessionStorage check перенесено в самий кінець IIFE — щоб всі const/let (fmtN, state, setPeriodPreset тощо) уже були оголошені на момент unlock→initApp
 
 // ============================================================
 // HELPERS
 // ============================================================
 
-const $ = id => document.getElementById(id);
+function $(id) { return document.getElementById(id); }
 const el = (tag, cls, html) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -2208,5 +2205,11 @@ function initApp() {
 }
 
 window._pintopRender = renderAll;
+
+// Авто-unlock якщо сесія вже була розблокована (виконуємо ОСТАННІМ, коли всі const/функції вже оголошені)
+if (sessionStorage.getItem(KEY) === '1') {
+  try { unlock({ animate: false }); }
+  catch (e) { console.error('[pintop] auto-unlock failed:', e); showInitError(e); }
+}
 
 })();
