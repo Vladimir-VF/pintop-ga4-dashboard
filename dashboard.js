@@ -1985,16 +1985,28 @@ function renderActiveTab(tab) {
   const wrap = $('chFilterWrap');
   if (wrap) wrap.style.display = tab === 'overview' ? 'flex' : 'none';
 
-  switch (tab) {
-    case 'overview': renderOverview(); break;
-    case 'paid': renderPaid(); break;
-    case 'gads': renderGads(); break;
-    case 'tiktok': renderTikTok(); break;
-    case 'meta': renderMeta(); break;
-    case 'utm': renderUtm(); break;
-    case 'organic': renderGsc(); break;
-    case 'audience': renderAudience(); break;
-    case 'insights': renderInsights(); break;
+  try {
+    switch (tab) {
+      case 'overview': renderOverview(); break;
+      case 'paid': renderPaid(); break;
+      case 'gads': renderGads(); break;
+      case 'tiktok': renderTikTok(); break;
+      case 'meta': renderMeta(); break;
+      case 'utm': renderUtm(); break;
+      case 'organic': renderGsc(); break;
+      case 'audience': renderAudience(); break;
+      case 'insights': renderInsights(); break;
+    }
+  } catch (err) {
+    console.error('Render error on tab', tab, err);
+    const panel = document.querySelector(`.tab-panel[data-panel="${tab}"]`);
+    if (panel) {
+      panel.innerHTML = `
+        <div class="notice danger" style="margin:40px 20px;">
+          <b>⚠ Помилка рендеру (${tab}):</b> ${err.message || err}<br>
+          <button onclick="location.reload(true)" style="margin-top:10px;padding:6px 12px;background:var(--green);color:#0a0a0a;border-radius:6px;font-weight:700;cursor:pointer;">Перезавантажити</button>
+        </div>`;
+    }
   }
 }
 
