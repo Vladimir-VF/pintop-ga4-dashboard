@@ -284,12 +284,28 @@ function kpiCard({ color, label, val, unit, sub, dlt }) {
 // ============================================================
 
 function renderOverview() {
-  const cur = aggDaily(D.ga4.daily, state.from, state.to);
-  const prv = aggDaily(D.ga4.daily, state.prevFrom, state.prevTo);
+  const curFull = aggDaily(D.ga4.daily, state.from, state.to);
+  const prvFull = aggDaily(D.ga4.daily, state.prevFrom, state.prevTo);
 
   // KPI row
   const channels = pickChannelsForPeriod();
   const totalCh = channels.reduce((a,c)=>a+c.s,0);
+
+  // Якщо фільтр каналів активний (не всі) — KPI рахуємо з channels breakdown
+  // Але delta тоді неможлива (немає prev breakdown) — показуємо cur only
+  const filterActive = state.channels && state.channels.size > 0 && state.channels.size < allChCount();
+  let cur = curFull, prv = prvFull, noDelta = false;
+  if (filterActive) {
+    const selCh = channels.filter(c => state.channels.has(c.ch));
+    cur = { sum: {
+      s: selCh.reduce((a,c)=>a+c.s,0),
+      u: selCh.reduce((a,c)=>a+(c.u||0),0),
+      nu: selCh.reduce((a,c)=>a+(c.nu||0),0),
+      c: selCh.reduce((a,c)=>a+(c.c||0),0),
+    }, byDay: curFull.byDay };
+    prv = { sum: { s: 0, u: 0, nu: 0, c: 0 }, byDay: prvFull.byDay };
+    noDelta = true;
+  }
   const paidSpend = aggGAdsDaily(state.from, state.to).sum.spend_usd
                   + aggTTDaily(state.from, state.to).sum.spend;
   const paidConv = aggGAdsDaily(state.from, state.to).sum.conv
@@ -302,10 +318,10 @@ function renderOverview() {
   const periodLen = Math.round((state.to - state.from)/86400000) + 1;
 
   $('kpiOverview').innerHTML = [
-    kpiCard({ color: 'green', label: 'Сесії', val: fmtN(cur.sum.s), dlt: delta(cur.sum.s, prv.sum.s, false, prevLabel) }),
-    kpiCard({ color: 'purple', label: 'Активні юзери', val: fmtN(cur.sum.u), dlt: delta(cur.sum.u, prv.sum.u, false, prevLabel) }),
-    kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(cur.sum.nu), dlt: delta(cur.sum.nu, prv.sum.nu, false, prevLabel) }),
-    kpiCard({ color: 'blue', label: 'Конв. GA4 (event count)', val: fmtN(cur.sum.c), dlt: delta(cur.sum.c, prv.sum.c, false, prevLabel), sub: 'не унікальні users' }),
+    kpiCard({ color: 'green', label: 'Сесії', val: fmtN(cur.sum.s), dlt: noDelta ? null : delta(cur.sum.s, prv.sum.s, false, prevLabel), sub: noDelta ? 'фільтр активний' : '' }),
+    kpiCard({ color: 'purple', label: 'Активні юзери', val: fmtN(cur.sum.u), dlt: noDelta ? null : delta(cur.sum.u, prv.sum.u, false, prevLabel), sub: noDelta ? 'фільтр активний' : '' }),
+    kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(cur.sum.nu), dlt: noDelta ? null : delta(cur.sum.nu, prv.sum.nu, false, prevLabel), sub: noDelta ? 'фільтр активний' : '' }),
+    kpiCard({ color: 'blue', label: 'Конв. GA4 (event count)', val: fmtN(cur.sum.c), dlt: noDelta ? null : delta(cur.sum.c, prv.sum.c, false, prevLabel), sub: noDelta ? 'фільтр активний' : 'не унікальні users' }),
     kpiCard({ color: 'amber', label: 'Paid spend', val: fmtUsd(paidSpend), unit: 'USD', sub: 'Google Ads + TikTok (кабінет)' }),
     kpiCard({ color: 'teal', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: paidConv ? `${fmtN(paidConv)} конв з кабінетів` : 'немає конв' }),
     kpiCard({ color: 'green', label: 'Organic clicks (GSC)', val: fmtN(gscClicks28), sub: 'останні 28 днів' }),
@@ -1252,7 +1268,7 @@ function renderMeta() {
 // ============================================================
 
 function renderUtm() {
-  const utm = D.ga4.utm.filter(u => chIsSelected(utmToChannel(u.src, u.med)));
+  const utm = D.ga4.utm;
   const totalSess = utm.reduce((a,u)=>a+u.s,0);
   const totalConv = utm.reduce((a,u)=>a+u.c,0);
   const cpc = utm.filter(u => u.med === 'cpc').reduce((a,u)=>a+u.s,0);
@@ -1909,6 +1925,10 @@ function renderAll() {
 }
 
 function renderActiveTab(tab) {
+  // Фільтр каналів має сенс тільки на Overview
+  const wrap = $('chFilterWrap');
+  if (wrap) wrap.style.display = tab === 'overview' ? 'flex' : 'none';
+
   switch (tab) {
     case 'overview': renderOverview(); break;
     case 'paid': renderPaid(); break;
