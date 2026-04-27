@@ -201,10 +201,14 @@
         <div class="page-subtitle">Зведено по 3 каналах. Google Ads конвертовано з AED→USD за фіксованим курсом 3.6725. Цифри — кабінетні (Google + TikTok), Meta — з GA4.</div>
       </div>
 
+      <!-- Weekly card report (last completed Mon-Sun, independent of period filter) -->
+      <div class="weekly-report section" id="weeklyReport"></div>
+
       <div class="notice">
         <b>Конверсії (cabinet)</b> = реєстрації, заявки, демо в самих рекламних кабінетах (правильний performance KPI). <b>Конверсії GA4</b> = event count подій, помічених як conversion (включає duplicate hits, NE unique users). Це різні величини, не змішуй.
       </div>
 
+      <div class="section-eyebrow">Період <span id="paidPeriodLabel">↑ обраний у фільтрі вгорі</span></div>
       <div class="grid grid-4 section" id="kpiPaid"></div>
 
       <div class="grid grid-3 section" id="paidCards"></div>
@@ -251,6 +255,8 @@
       </div>
 
       <div class="grid grid-6 section" id="kpiGads"></div>
+
+      <div class="notice approx-notice" id="gadsApproxNotice" style="display:none;"></div>
 
       <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
         <button data-gads-filter="active" class="active">Тільки активні</button>
@@ -344,6 +350,8 @@
       </div>
 
       <div class="grid grid-6 section" id="kpiTikTok"></div>
+
+      <div class="notice approx-notice" id="ttApproxNotice" style="display:none;"></div>
 
       <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
         <button data-tt-filter="active" class="active">Тільки активні</button>

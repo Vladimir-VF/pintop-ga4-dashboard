@@ -4,7 +4,7 @@
 
 (function() {
 
-console.log('[pintop] dashboard.js v2.9 loaded, checking data...');
+console.log('[pintop] dashboard.js v3.3 loaded — period-aware paid + weekly card report');
 const D = window.PINTOP_DATA;
 if (!D) {
   console.error('[pintop] PINTOP_DATA not loaded — показую fallback error');
@@ -310,6 +310,64 @@ function aggTTDaily(from, to) {
   return out;
 }
 
+// Aggregate Google Ads campaigns for a given period using daily_by_camp_30d.
+// For periods inside the last 30 days — compute true totals per campaign.
+// For periods > 30d — fall back to static 30d snapshot with `isApprox: true`.
+function aggGAdsCampaigns(from, to) {
+  const days = Math.round((to - from)/86400000) + 1;
+  const allCamps = D.gads.campaigns_30d || [];
+  if (days > 30) {
+    return { camps: allCamps, isApprox: true, days, note: 'дані за останні 30 днів — більший період потребує API розширення' };
+  }
+  const byName = {};
+  (D.gads.daily_by_camp_30d || []).forEach(r => {
+    if (!inRange(r.d, from, to)) return;
+    const k = r.camp;
+    if (!byName[k]) byName[k] = { cost_aed: 0, cost_usd: 0, clk: 0, conv: 0 };
+    byName[k].cost_aed += r.cost_aed || 0;
+    byName[k].cost_usd += r.cost_usd || 0;
+    byName[k].clk += r.clk || 0;
+    byName[k].conv += r.conv || 0;
+  });
+  const camps = allCamps.map(c => {
+    const agg = byName[c.name];
+    if (agg && (agg.cost_usd > 0 || agg.clk > 0)) {
+      const ratio = c.cost_usd > 0 ? (agg.cost_usd / c.cost_usd) : 1;
+      const imp = Math.round((c.imp || 0) * ratio);
+      return Object.assign({}, c, {
+        cost_aed: agg.cost_aed,
+        cost_usd: agg.cost_usd,
+        imp,
+        clk: agg.clk,
+        conv: agg.conv,
+        ctr: imp ? agg.clk / imp : 0,
+        cpc_usd: agg.clk ? agg.cost_usd / agg.clk : 0,
+        cpc_aed: agg.clk ? agg.cost_aed / agg.clk : 0,
+        cpa_usd: agg.conv ? agg.cost_usd / agg.conv : 0,
+        cpa_aed: agg.conv ? agg.cost_aed / agg.conv : 0,
+      });
+    }
+    return Object.assign({}, c, {
+      cost_aed: 0, cost_usd: 0, imp: 0, clk: 0, conv: 0, ctr: 0,
+      cpc_usd: 0, cpc_aed: 0, cpa_usd: 0, cpa_aed: 0,
+    });
+  });
+  return { camps, isApprox: false, days };
+}
+
+// Compute the last completed Mon-Sun week and the prior Mon-Sun week.
+// Returns dates that are guaranteed to be ≤ today and align with ISO weeks.
+function getLastCompletedWeek() {
+  const t = new Date(today.getTime());
+  const dow = t.getDay(); // 0=Sun..6=Sat
+  const daysToLastSun = dow === 0 ? 7 : dow; // last Sunday
+  const lastSun = new Date(t); lastSun.setDate(lastSun.getDate() - daysToLastSun);
+  const lastMon = new Date(lastSun); lastMon.setDate(lastMon.getDate() - 6);
+  const prevSun = new Date(lastMon); prevSun.setDate(prevSun.getDate() - 1);
+  const prevMon = new Date(prevSun); prevMon.setDate(prevMon.getDate() - 6);
+  return { tw: { from: lastMon, to: lastSun }, pw: { from: prevMon, to: prevSun } };
+}
+
 // ============================================================
 // DELTA / KPI rendering
 // ============================================================
@@ -605,7 +663,140 @@ function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
 // PAID
 // ============================================================
 
+// === Weekly Report Card (last completed Mon-Sun week vs prior week) ===
+// Independent of period filter — always shows last completed week.
+function renderWeeklyReport() {
+  const root = $('weeklyReport');
+  if (!root) return;
+  const { tw, pw } = getLastCompletedWeek();
+  const tw_g = aggGAdsDaily(tw.from, tw.to);
+  const tw_t = aggTTDaily(tw.from, tw.to);
+  const tw_ga4 = aggDaily(D.ga4.daily, tw.from, tw.to);
+  const pw_g = aggGAdsDaily(pw.from, pw.to);
+  const pw_t = aggTTDaily(pw.from, pw.to);
+  const pw_ga4 = aggDaily(D.ga4.daily, pw.from, pw.to);
+
+  const twSpend = tw_g.sum.spend_usd + tw_t.sum.spend;
+  const pwSpend = pw_g.sum.spend_usd + pw_t.sum.spend;
+  const twConv = tw_g.sum.conv + tw_t.sum.conv;
+  const pwConv = pw_g.sum.conv + pw_t.sum.conv;
+  const twCpl = twConv ? twSpend / twConv : 0;
+  const pwCpl = pwConv ? pwSpend / pwConv : 0;
+  const twClk = tw_g.sum.clk + tw_t.sum.clk;
+  const pwClk = pw_g.sum.clk + pw_t.sum.clk;
+
+  const fmtRange = (a, b) => {
+    const m1 = String(a.getMonth()+1).padStart(2,'0');
+    const d1 = String(a.getDate()).padStart(2,'0');
+    const m2 = String(b.getMonth()+1).padStart(2,'0');
+    const d2 = String(b.getDate()).padStart(2,'0');
+    return `${d1}.${m1} – ${d2}.${m2}`;
+  };
+
+  const dlt = (cur, prv, invert = false) => {
+    if (!prv && !cur) return { txt: '—', cls: 'neutral', arr: '·' };
+    if (!prv) return { txt: 'нове', cls: 'up', arr: '↑' };
+    const d = (cur - prv) / prv * 100;
+    const positive = (invert ? -d : d) > 0.5;
+    const negative = (invert ? -d : d) < -0.5;
+    return {
+      txt: (d>=0?'+':'') + d.toFixed(1) + '%',
+      cls: positive ? 'up' : negative ? 'down' : 'neutral',
+      arr: d > 0 ? '↑' : d < 0 ? '↓' : '·',
+    };
+  };
+
+  const dSpend = dlt(twSpend, pwSpend); // напрямок зміни spend (нейтральна інтерпретація — рост може бути позитивний при scaling)
+  const dConv = dlt(twConv, pwConv);
+  const dCpl = dlt(twCpl, pwCpl, true); // інвертуємо: менший CPL = краще
+  const dClk = dlt(twClk, pwClk);
+  const dGa4Sess = dlt(tw_ga4.sum.s, pw_ga4.sum.s);
+  const dGa4Nu = dlt(tw_ga4.sum.nu, pw_ga4.sum.nu);
+
+  const card = (label, val, sub, d, accent) => `
+    <div class="wr-card ${accent || ''}">
+      <div class="wr-label">${label}</div>
+      <div class="wr-val">${val}</div>
+      ${sub ? `<div class="wr-sub">${sub}</div>` : ''}
+      ${d ? `<div class="wr-delta ${d.cls}"><span class="ic">${d.arr}</span>${d.txt}<span class="muted">vs пред. тиждень</span></div>` : ''}
+    </div>`;
+
+  // Per-channel mini-cards
+  const dGSpend = dlt(tw_g.sum.spend_usd, pw_g.sum.spend_usd, true);
+  const dGConv = dlt(tw_g.sum.conv, pw_g.sum.conv);
+  const dGCpa = dlt(tw_g.sum.conv ? tw_g.sum.spend_usd/tw_g.sum.conv : 0, pw_g.sum.conv ? pw_g.sum.spend_usd/pw_g.sum.conv : 0, true);
+  const dTSpend = dlt(tw_t.sum.spend, pw_t.sum.spend, true);
+  const dTConv = dlt(tw_t.sum.conv, pw_t.sum.conv);
+  const dTCpa = dlt(tw_t.sum.conv ? tw_t.sum.spend/tw_t.sum.conv : 0, pw_t.sum.conv ? pw_t.sum.spend/pw_t.sum.conv : 0, true);
+
+  // Meta — paid_social + meta/cpc + ig/social з utm_merged за цей тиждень
+  const isMetaUtm = u => {
+    const s = (u.src||'').toLowerCase(), m = (u.med||'').toLowerCase();
+    return (s==='meta'||s==='facebook'||s==='ig'||s==='instagram') && (m==='cpc'||m==='paid_social');
+  };
+  // utm масиви містять 90d агрегат — окремих тижневих метрик нема. Показуємо ремарку.
+  const metaPaidSess = (D.ga4.utm||[]).filter(isMetaUtm).reduce((a,r)=>a+r.s,0);
+  const metaPaidConv = (D.ga4.utm||[]).filter(isMetaUtm).reduce((a,r)=>a+r.c,0);
+
+  root.innerHTML = `
+    <div class="wr-head">
+      <div>
+        <div class="wr-h-eyebrow">Звіт за останній повний тиждень</div>
+        <div class="wr-h-range">${fmtRange(tw.from, tw.to)} <span class="wr-h-vs">vs ${fmtRange(pw.from, pw.to)}</span></div>
+      </div>
+      <div class="wr-h-tag">📊 Mon–Sun · WoW</div>
+    </div>
+
+    <div class="wr-grid">
+      ${card('Total spend', fmtUsd(twSpend), 'Google + TikTok', dSpend, 'accent-blend')}
+      ${card('Конверсії (cabinet)', fmtN(twConv), `${fmtN(twClk)} кліків`, dConv, 'accent-green')}
+      ${card('Blended CPL', twCpl ? fmtUsd(twCpl) : '—', `${fmtN(twConv)} конв`, dCpl, 'accent-amber')}
+      ${card('GA4 нові юзери', fmtN(tw_ga4.sum.nu), `${fmtN(tw_ga4.sum.s)} сесій`, dGa4Nu, 'accent-purple')}
+    </div>
+
+    <div class="wr-channels">
+      <div class="wr-ch google">
+        <div class="wr-ch-head"><div class="wr-ch-logo">G</div><div class="wr-ch-name">Google Ads</div><span class="status-pill live">live</span></div>
+        <div class="wr-ch-row">
+          <div><span class="wr-ch-l">Spend</span><span class="wr-ch-v">${fmtUsd(tw_g.sum.spend_usd)}</span><span class="wr-ch-d ${dGSpend.cls}">${dGSpend.arr}${dGSpend.txt}</span></div>
+          <div><span class="wr-ch-l">Conv</span><span class="wr-ch-v">${fmtN(tw_g.sum.conv)}</span><span class="wr-ch-d ${dGConv.cls}">${dGConv.arr}${dGConv.txt}</span></div>
+          <div><span class="wr-ch-l">CPA</span><span class="wr-ch-v">${tw_g.sum.conv ? fmtUsd(tw_g.sum.spend_usd/tw_g.sum.conv) : '—'}</span><span class="wr-ch-d ${dGCpa.cls}">${dGCpa.arr}${dGCpa.txt}</span></div>
+          <div><span class="wr-ch-l">Кліків</span><span class="wr-ch-v">${fmtN(tw_g.sum.clk)}</span><span class="wr-ch-d muted">CTR ${tw_g.sum.imp ? fmtPct(tw_g.sum.clk/tw_g.sum.imp) : '—'}</span></div>
+        </div>
+      </div>
+      <div class="wr-ch tiktok">
+        <div class="wr-ch-head"><div class="wr-ch-logo">♪</div><div class="wr-ch-name">TikTok Ads</div><span class="status-pill ${tw_t.sum.spend>0?'live':'paused'}">${tw_t.sum.spend>0?'live':'idle'}</span></div>
+        <div class="wr-ch-row">
+          <div><span class="wr-ch-l">Spend</span><span class="wr-ch-v">${fmtUsd(tw_t.sum.spend)}</span><span class="wr-ch-d ${dTSpend.cls}">${dTSpend.arr}${dTSpend.txt}</span></div>
+          <div><span class="wr-ch-l">Conv</span><span class="wr-ch-v">${fmtN(tw_t.sum.conv)}</span><span class="wr-ch-d ${dTConv.cls}">${dTConv.arr}${dTConv.txt}</span></div>
+          <div><span class="wr-ch-l">CPA</span><span class="wr-ch-v">${tw_t.sum.conv ? fmtUsd(tw_t.sum.spend/tw_t.sum.conv) : '—'}</span><span class="wr-ch-d ${dTCpa.cls}">${dTCpa.arr}${dTCpa.txt}</span></div>
+          <div><span class="wr-ch-l">Кліків</span><span class="wr-ch-v">${fmtN(tw_t.sum.clk)}</span><span class="wr-ch-d muted">CTR ${tw_t.sum.imp ? fmtPct(tw_t.sum.clk/tw_t.sum.imp) : '—'}</span></div>
+        </div>
+      </div>
+      <div class="wr-ch meta">
+        <div class="wr-ch-head"><div class="wr-ch-logo">M</div><div class="wr-ch-name">Meta Ads</div><span class="status-pill limited">GA4 only</span></div>
+        <div class="wr-ch-row">
+          <div><span class="wr-ch-l">Spend</span><span class="wr-ch-v muted">—</span><span class="wr-ch-d muted">кабінет недоступний</span></div>
+          <div><span class="wr-ch-l">Сесії GA4</span><span class="wr-ch-v">${fmtN(metaPaidSess)}</span><span class="wr-ch-d muted">90д агрегат</span></div>
+          <div><span class="wr-ch-l">Conv events</span><span class="wr-ch-v">${fmtN(metaPaidConv)}</span><span class="wr-ch-d muted">не unique</span></div>
+          <div><span class="wr-ch-l">CPA</span><span class="wr-ch-v muted">—</span><span class="wr-ch-d muted">потрібен Marketing API</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderPaid() {
+  // Weekly report (independent of period)
+  renderWeeklyReport();
+
+  // Update period label
+  const paidPeriodEl = $('paidPeriodLabel');
+  if (paidPeriodEl) {
+    const fmt = d => d.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short' });
+    paidPeriodEl.textContent = `${fmt(state.from)} → ${fmt(state.to)} (${Math.round((state.to - state.from)/86400000)+1} днів)`;
+  }
+
   const gd = aggGAdsDaily(state.from, state.to);
   const td = aggTTDaily(state.from, state.to);
   const totalSpend = gd.sum.spend_usd + td.sum.spend;
@@ -774,7 +965,9 @@ function renderPaid() {
 // ============================================================
 
 function renderGads() {
-  const allCamps = D.gads.campaigns_30d;
+  // Period-aware aggregation: for ≤30d use daily_by_camp_30d, for >30d use static 30d snapshot
+  const { camps: periodCamps, isApprox: gadsApprox, days: gadsDays, note: gadsNote } = aggGAdsCampaigns(state.from, state.to);
+  const allCamps = periodCamps;
   const c30 = state.gadsFilter === 'active'
     ? allCamps.filter(c => c.status === 'ENABLED' || c.cost_usd > 0)
     : allCamps;
@@ -789,8 +982,9 @@ function renderGads() {
 
   const activeCount = allCamps.filter(c => c.status === 'ENABLED').length;
   const cpmUsd = totalImp ? totalSpendUsd / totalImp * 1000 : 0;
+  const periodLabel = `за ${gadsDays || Math.round((state.to - state.from)/86400000)+1} днів`;
   $('kpiGads').innerHTML = [
-    kpiCard({ color: 'green', label: 'Spend USD', val: fmtUsd(totalSpendUsd), sub: fmtAed(totalSpendAed) }),
+    kpiCard({ color: 'green', label: 'Spend USD', val: fmtUsd(totalSpendUsd), sub: fmtAed(totalSpendAed) + ' · ' + periodLabel }),
     kpiCard({ color: 'purple', label: 'Активних', val: activeCount, sub: `${allCamps.length} всього в акаунті` }),
     kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
     kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
@@ -798,8 +992,21 @@ function renderGads() {
     kpiCard({ color: 'teal', label: 'Avg Imp Share', val: fmtPct(avgIs), sub: 'Search кампанії' }),
   ].join('');
 
-  // Daily spend chart
-  const daily = D.gads.daily_90d.slice().sort((a,b) => a.d.localeCompare(b.d));
+  // Show approx notice if applicable
+  const approxEl = $('gadsApproxNotice');
+  if (approxEl) {
+    if (gadsApprox) {
+      approxEl.innerHTML = `<b>⚠ Snapshot за 30 днів</b> — обраний період ${gadsDays} днів, але per-campaign daily-розбивка обмежена 30-денним вікном API. Цифри по кампаніях/ad groups показані за 30д. KPI на топі — точні за період.`;
+      approxEl.style.display = 'block';
+    } else {
+      approxEl.style.display = 'none';
+    }
+  }
+
+  // Daily spend chart — only days in selected period, sorted asc
+  const daily = D.gads.daily_90d.slice()
+    .filter(d => inRange(d.d, state.from, state.to))
+    .sort((a,b) => a.d.localeCompare(b.d));
   destroy('gadsDaily');
   charts.gadsDaily = new Chart($('gadsDaily'), {
     type: 'bar',
@@ -1014,18 +1221,46 @@ function renderTikTok() {
   const cpl = totalConv ? totalSpend/totalConv : 0;
   const activeCampsNum = camplist.filter(c => c.status && c.status.includes('ENABLE')).length;
 
-  const ttCpm = totalImp ? totalSpend / totalImp * 1000 : 0;
+  // Period-aware totals from daily_30d (campaigns_30d залишається 30d snapshot — TikTok API per-campaign daily не підтягуємо)
+  const ttPeriodAgg = aggTTDaily(state.from, state.to);
+  const periodTotalSpend = ttPeriodAgg.sum.spend;
+  const periodTotalImp = ttPeriodAgg.sum.imp;
+  const periodTotalClk = ttPeriodAgg.sum.clk;
+  const periodTotalConv = ttPeriodAgg.sum.conv;
+  const periodCtr = periodTotalImp ? periodTotalClk/periodTotalImp : 0;
+  const periodCpc = periodTotalClk ? periodTotalSpend/periodTotalClk : 0;
+  const periodCpl = periodTotalConv ? periodTotalSpend/periodTotalConv : 0;
+  const periodCpm = periodTotalImp ? periodTotalSpend / periodTotalImp * 1000 : 0;
+  const ttDays = Math.round((state.to - state.from)/86400000) + 1;
+  const ttPeriodLabel = `за ${ttDays} днів`;
+
   $('kpiTikTok').innerHTML = [
-    kpiCard({ color: 'pink', label: 'Spend USD', val: fmtUsd(totalSpend), sub: '30 днів' }),
+    kpiCard({ color: 'pink', label: 'Spend USD', val: fmtUsd(periodTotalSpend), sub: ttPeriodLabel }),
     kpiCard({ color: 'green', label: 'Активних', val: activeCampsNum, sub: `${camplist.length} всього в акаунті` }),
-    kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(totalClk), sub: fmtN(totalImp) + ' імп' }),
-    kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(ctr) }),
-    kpiCard({ color: 'purple', label: 'CPC USD', val: cpc ? fmtUsd(cpc) : '—', sub: `CPM ${ttCpm ? fmtUsd(ttCpm) : '—'}` }),
-    kpiCard({ color: 'teal', label: 'CPL USD', val: cpl ? fmtUsd(cpl) : '—', sub: `${fmtN(totalConv)} конв з pixel` }),
+    kpiCard({ color: 'blue', label: 'Кліків', val: fmtN(periodTotalClk), sub: fmtN(periodTotalImp) + ' імп' }),
+    kpiCard({ color: 'amber', label: 'CTR', val: fmtPct(periodCtr) }),
+    kpiCard({ color: 'purple', label: 'CPC USD', val: periodCpc ? fmtUsd(periodCpc) : '—', sub: `CPM ${periodCpm ? fmtUsd(periodCpm) : '—'}` }),
+    kpiCard({ color: 'teal', label: 'CPL USD', val: periodCpl ? fmtUsd(periodCpl) : '—', sub: `${fmtN(periodTotalConv)} конв з pixel` }),
   ].join('');
 
-  // Daily spend — приховую дні з 0
-  const dailyRaw = (D.tiktok.daily_30d || []).slice().sort((a,b) => (a.stat_time_day || '').localeCompare(b.stat_time_day || ''));
+  // Show 30d notice if period > 30d
+  const ttApproxEl = $('ttApproxNotice');
+  if (ttApproxEl) {
+    if (ttDays > 30) {
+      ttApproxEl.innerHTML = `<b>⚠ Snapshot за 30 днів</b> — обраний період ${ttDays} днів. Кампанії/ad groups показані за 30д (TikTok API не дає старіше для per-campaign daily). KPI на топі — точні за період в межах 30д.`;
+      ttApproxEl.style.display = 'block';
+    } else {
+      ttApproxEl.style.display = 'none';
+    }
+  }
+
+  // Daily spend — only days in selected period, hide zero days
+  const dailyRaw = (D.tiktok.daily_30d || []).slice()
+    .filter(r => {
+      const dStr = (r.stat_time_day || '').replace(/-/g, '').slice(0, 8);
+      return dStr && inRange(dStr, state.from, state.to);
+    })
+    .sort((a,b) => (a.stat_time_day || '').localeCompare(b.stat_time_day || ''));
   const daily = dailyRaw.filter(d => d.spend > 0.01);
   destroy('ttDaily');
   charts.ttDaily = new Chart($('ttDaily'), {
