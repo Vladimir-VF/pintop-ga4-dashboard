@@ -201,14 +201,10 @@
         <div class="page-subtitle">Зведено по 3 каналах. Google Ads конвертовано з AED→USD за фіксованим курсом 3.6725. Цифри — кабінетні (Google + TikTok), Meta — з GA4.</div>
       </div>
 
-      <!-- Weekly card report (last completed Mon-Sun, independent of period filter) -->
-      <div class="weekly-report section" id="weeklyReport"></div>
-
       <div class="notice">
         <b>Конверсії (cabinet)</b> = реєстрації, заявки, демо в самих рекламних кабінетах (правильний performance KPI). <b>Конверсії GA4</b> = event count подій, помічених як conversion (включає duplicate hits, NE unique users). Це різні величини, не змішуй.
       </div>
 
-      <div class="section-eyebrow">Період <span id="paidPeriodLabel">↑ обраний у фільтрі вгорі</span></div>
       <div class="grid grid-4 section" id="kpiPaid"></div>
 
       <div class="grid grid-3 section" id="paidCards"></div>
@@ -255,8 +251,6 @@
       </div>
 
       <div class="grid grid-6 section" id="kpiGads"></div>
-
-      <div class="notice approx-notice" id="gadsApproxNotice" style="display:none;"></div>
 
       <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
         <button data-gads-filter="active" class="active">Тільки активні</button>
@@ -350,8 +344,6 @@
       </div>
 
       <div class="grid grid-6 section" id="kpiTikTok"></div>
-
-      <div class="notice approx-notice" id="ttApproxNotice" style="display:none;"></div>
 
       <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
         <button data-tt-filter="active" class="active">Тільки активні</button>
@@ -620,6 +612,7 @@
         <h1 class="page-title">Аудиторія <span>та поведінка</span></h1>
         <div class="page-subtitle">Девайси, географія, мови, час доби. Дані з GA4 з обмеженнями privacy thresholds для невеликих сегментів.</div>
       </div>
+      <div id="audPeriodNotice"></div>
 
       <div class="grid grid-3 section">
         <div class="card">
@@ -785,6 +778,7 @@
         <h1 class="page-title">Інсайти та <span>аномалії</span></h1>
         <div class="page-subtitle">Системні висновки, чекліст трекінгу, воронка реєстрацій з drop-rate, шлях клієнта по каналах.</div>
       </div>
+      <div id="insightsPeriodNotice"></div>
 
       <div class="card section">
         <div class="card-title">Воронка реєстрації креатора (90d)
@@ -871,7 +865,7 @@
 
 </div>
 
-<script src="./data.js?v=3.3"></script>
-<script src="./dashboard.js?v=3.3"></script>
+<script src="./data.js?v=3.2"></script>
+<script src="./dashboard.js?v=3.2"></script>
 </body>
 </html>
