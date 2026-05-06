@@ -92,6 +92,7 @@
       <button data-period="90">90d</button>
       <button data-period="qtd">QTD</button>
       <button data-period="ytd">YTD</button>
+      <button data-period="lifetime">Lifetime</button>
       <button data-period="custom">Custom</button>
     </div>
     <div class="filter-date" id="customRange" style="display:none;">
@@ -437,7 +438,7 @@
         <span class="ic">✓</span> <b>Marketing API підключено через Pipeboard MCP.</b>
         Cabinet дані (spend / CPM / CPC / CTR / CPL) тягнуться напряму з Meta Ads Manager.
         <br><b>Account:</b> PinTop Ads Account · <b>Currency:</b> USD · <b>TZ:</b> Europe/Kiev · <b>Status:</b> Active
-        <br><b>Daily breakdown:</b> доступно за останні 26 днів (2026-04-06 → 2026-05-06). Для довших періодів — snapshot значення (lifetime/90d).
+        <br><b>Daily breakdown:</b> Meta API повертає лише останні ~30 днів daily — у нас 26 днів (2026-04-06 → 2026-05-06). Для періодів &gt;30d — KPI беруться з snapshot (7d/30d/90d/lifetime), а chart показує доступні 26 днів. Для повної історії — Meta Ads Manager напряму.
       </div>
 
       <div class="grid grid-6 section" id="kpiMetaCabinet"></div>
@@ -917,7 +918,7 @@
 
 </div>
 
-<script src="./data.js?v=3.3"></script>
-<script src="./dashboard.js?v=3.3"></script>
+<script src="./data.js?v=3.4"></script>
+<script src="./dashboard.js?v=3.4"></script>
 </body>
 </html>
