@@ -430,23 +430,75 @@
     <section class="tab-panel" data-panel="meta">
       <div class="page-head">
         <h1 class="page-title">Meta <span>Ads</span></h1>
-        <div class="page-subtitle">Перший Meta-запуск: 18-20 квітня 2026.</div>
+        <div class="page-subtitle">Account act_657622620401742 (PinTop Ads Account). Cabinet через Pipeboard MCP + GA4 utm attribution view.</div>
       </div>
 
-      <div class="notice warning" id="metaNotice">
-        <span class="ic">⚠</span> <b>Прямого API доступу до Meta Ads Manager немає.</b>
-        Аккаунт у Meta for Developers ще не схвалено. Всі числа нижче — з GA4 (utm_source=meta/facebook/instagram), розшифровка кампаній з UTM.
-        <br><b>Недоступно з кабінету:</b> spend, impressions, CTR, CPC, CPL. <b>Є з GA4:</b> сесії, нові юзери, конверсії (event count).
-        <br><b>Активні кампанії зараз:</b> Brands UA LeadGen 20.04, Creators UA LeadGen 18.04 V1 + 19.04. У GA4 йдуть з коректним `meta/cpc`. URL-encoded дублі (через `|` у назвах) автоматично склеєні в таблиці нижче.
-        <br><b>Унікальна проблема в історії:</b> частина старих запусків (2,700+ сесій) має `utm_medium=paid_social` замість `cpc` — адмінка pin.top такі сесії класифікує як Unknown (стандарт PT-11275 вимагає `cpc`).
+      <div class="notice success" id="metaNotice">
+        <span class="ic">✓</span> <b>Marketing API підключено через Pipeboard MCP.</b>
+        Cabinet дані (spend / CPM / CPC / CTR / CPL) тягнуться напряму з Meta Ads Manager.
+        <br><b>Account:</b> PinTop Ads Account · <b>Currency:</b> USD · <b>TZ:</b> Europe/Kiev · <b>Status:</b> Active
+        <br><b>Daily breakdown:</b> доступно за останні 26 днів (2026-04-06 → 2026-05-06). Для довших періодів — snapshot значення (lifetime/90d).
       </div>
 
-      <div class="grid grid-4 section" id="kpiMeta"></div>
+      <div class="grid grid-6 section" id="kpiMetaCabinet"></div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title" id="metaChartTitle">Spend USD по днях (cabinet)</div>
+          <div class="chart-box lg"><canvas id="metaDailySpend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Engagement signals по днях (LPV, link clicks, video views)
+            <span class="hint">не реагує на period; signin events недоступні в daily breakdown</span>
+          </div>
+          <div class="chart-box lg"><canvas id="metaDailyConv"></canvas></div>
+        </div>
+      </div>
 
       <div class="card section">
-        <div class="card-title">Кампанії Meta (з GA4 utm, 90d)
-          <span class="hint">склеєно URL-encoded дублі · підсвічено активні зараз · source IN (meta, facebook, instagram)</span>
+        <div class="card-title">Кампанії Meta (cabinet · lifetime)
+          <span class="hint">39 кампаній що крутили бюджет · класифікація по сторонах · сортування за spend</span>
         </div>
+        <div class="filter-group" style="margin-bottom:14px;width:fit-content;">
+          <button data-meta-filter="all" class="active">Усі</button>
+          <button data-meta-filter="active">Тільки ACTIVE</button>
+          <button data-meta-filter="lead_gen">Lead gen</button>
+          <button data-meta-filter="engagement_pb">PB engagement</button>
+        </div>
+        <div class="table-wrap">
+          <table class="t" id="metaCabinetCampTable">
+            <thead><tr>
+              <th>Кампанія</th><th>Side</th><th>Type</th><th>Status</th>
+              <th class="num">Spend USD</th><th class="num">Imp</th>
+              <th class="num">Clk</th><th class="num">CTR</th><th class="num">CPC</th>
+              <th class="num">LPV</th><th class="num">SignIn C</th><th class="num">SignIn B</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="metaCampInsight" class="notice success" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="grid grid-2 section">
+        <div class="card">
+          <div class="card-title">Pixel events (lifetime)
+            <span class="hint">основні signin / valuable_viewing події</span>
+          </div>
+          <div id="metaPixelEvents"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Audiences hygiene
+            <span class="hint">21 аудиторія: 6 usable, 15 broken LAL (seed замалий)</span>
+          </div>
+          <div id="metaAudiencesBlock"></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="card-title">GA4 attribution view (для крос-каналу)
+          <span class="hint">utm_source=meta/facebook/instagram, 90d snapshot</span>
+        </div>
+        <div class="grid grid-4" id="kpiMeta" style="margin-bottom:14px;"></div>
         <div class="table-wrap">
           <table class="t" id="metaTable">
             <thead><tr>
@@ -462,7 +514,7 @@
 
       <div class="card section">
         <div class="card-title">Hygiene check Meta UTM
-          <span class="hint">перевірка на типові помилки запуску</span>
+          <span class="hint">URL-encoded, неправильний source/medium</span>
         </div>
         <div id="metaHygiene"></div>
       </div>

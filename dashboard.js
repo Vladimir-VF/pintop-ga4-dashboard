@@ -476,10 +476,18 @@ function renderOverview() {
     prv = { sum: { s: 0, u: 0, nu: 0, c: 0 }, byDay: prvFull.byDay };
     noDelta = true;
   }
+  // Paid spend: Google Ads + TikTok (daily) + Meta (snapshot — daily breakdown лімітований 26d)
+  const periodDaysOv = Math.round((state.to - state.from)/86400000+1);
+  const snOv = (D.meta_real || {}).snapshots || {};
+  const metaTargetOv = periodDaysOv <= 7 ? snOv.last_7d : periodDaysOv <= 30 ? snOv.last_30d : periodDaysOv <= 90 ? snOv.last_90d : snOv.lifetime;
+  const metaSpendOv = metaTargetOv ? (metaTargetOv.spend || 0) : 0;
+  const metaConvOv = metaTargetOv ? (((metaTargetOv.conversions||{}).pintop_c_signin_click||0) + ((metaTargetOv.conversions||{}).pintop_b_signin_click||0)) : 0;
   const paidSpend = aggGAdsDaily(state.from, state.to).sum.spend_usd
-                  + aggTTDaily(state.from, state.to).sum.spend;
+                  + aggTTDaily(state.from, state.to).sum.spend
+                  + metaSpendOv;
   const paidConv = aggGAdsDaily(state.from, state.to).sum.conv
-                 + aggTTDaily(state.from, state.to).sum.conv;
+                 + aggTTDaily(state.from, state.to).sum.conv
+                 + metaConvOv;
   const blendedCpl = paidConv ? paidSpend / paidConv : 0;
   const gscRange = aggGSCRange(state.from, state.to);
   const gscClicks28 = gscRange.clk;
@@ -493,7 +501,7 @@ function renderOverview() {
     kpiCard({ color: 'purple', label: 'Активні юзери', val: fmtN(cur.sum.u), dlt: noDelta ? null : delta(cur.sum.u, prv.sum.u, false, prevLabel), sub: noDelta ? 'фільтр активний' : '' }),
     kpiCard({ color: 'pink', label: 'Нові юзери', val: fmtN(cur.sum.nu), dlt: noDelta ? null : delta(cur.sum.nu, prv.sum.nu, false, prevLabel), sub: noDelta ? 'фільтр активний' : '' }),
     kpiCard({ color: 'blue', label: 'Конв. GA4 (event count)', val: fmtN(cur.sum.c), dlt: noDelta ? null : delta(cur.sum.c, prv.sum.c, false, prevLabel), sub: noDelta ? 'фільтр активний' : 'не унікальні users' }),
-    kpiCard({ color: 'amber', label: 'Paid spend', val: fmtUsd(paidSpend), unit: 'USD', sub: 'Google Ads + TikTok (кабінет)' }),
+    kpiCard({ color: 'amber', label: 'Paid spend', val: fmtUsd(paidSpend), unit: 'USD', sub: 'Google + TikTok + Meta (кабінет)' }),
     kpiCard({ color: 'teal', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: paidConv ? `${fmtN(paidConv)} конв з кабінетів` : 'немає конв' }),
     kpiCard({ color: 'green', label: 'Organic clicks (GSC)', val: fmtN(gscClicks28), sub: gscRange.days ? `${gscRange.days} днів даних` : 'GSC дані недоступні' }),
     kpiCard({ color: 'purple', label: 'Сесій / юзер', val: cur.sum.u ? (cur.sum.s/cur.sum.u).toFixed(2) : '—', sub: 'глибина залучення' }),
@@ -717,19 +725,55 @@ function buildOverviewInsights(cur, prv, paidSpend, paidConv) {
 // PAID
 // ============================================================
 
+function aggMetaDaily(from, to) {
+  const sum = { spend: 0, imp: 0, clk: 0, lpv: 0, signin_c: 0, signin_b: 0, val_view_c: 0, val_view_b: 0 };
+  const byDay = {};
+  const daily = ((D.meta_real || {}).daily_full) || [];
+  daily.forEach(d => {
+    if (!d.d) return;
+    const dt = new Date(`${d.d.slice(0,4)}-${d.d.slice(4,6)}-${d.d.slice(6,8)}`);
+    if (dt < from || dt > to) return;
+    sum.spend += d.spend_usd; sum.imp += d.imp; sum.clk += d.clk;
+    sum.lpv += d.lpv; sum.signin_c += d.signin_c; sum.signin_b += d.signin_b;
+    sum.val_view_c += d.val_view_c; sum.val_view_b += d.val_view_b;
+    byDay[d.d] = d;
+  });
+  return { sum, byDay };
+}
+
 function renderPaid() {
   const gd = aggGAdsDaily(state.from, state.to);
   const td = aggTTDaily(state.from, state.to);
-  const totalSpend = gd.sum.spend_usd + td.sum.spend;
-  const totalClk = gd.sum.clk + td.sum.clk;
-  const totalConv = gd.sum.conv + td.sum.conv;
+  const md = aggMetaDaily(state.from, state.to);
+  const periodDays = Math.round((state.to - state.from)/86400000+1);
+  // Meta: snapshot завжди беремо (точні signin events).
+  // Daily — тільки коли період короткий і покриває останні 26 днів (для charts).
+  const mr = D.meta_real || {};
+  const sn = mr.snapshots || {};
+  // Підбираємо найближчий snapshot для KPI
+  const target = periodDays <= 7 ? sn.last_7d : periodDays <= 30 ? sn.last_30d : periodDays <= 90 ? sn.last_90d : sn.lifetime;
+  let metaSpend = 0, metaClk = 0, metaImp = 0, metaLPV = 0, metaSigninC = 0, metaSigninB = 0;
+  let metaSource = 'snapshot';
+  if (target) {
+    metaSpend = target.spend || 0;
+    metaClk = target.clicks || 0;
+    metaImp = target.impressions || 0;
+    metaLPV = (target.actions || {}).landing_page_view || 0;
+    metaSigninC = (target.conversions || {}).pintop_c_signin_click || 0;
+    metaSigninB = (target.conversions || {}).pintop_b_signin_click || 0;
+  }
+  // Якщо custom-період (Custom з періодом, що не співпадає з 7/30/90/lifetime) — все ще використовуємо найближчий snapshot
+  const snapshotLabel = periodDays <= 7 ? 'last 7d' : periodDays <= 30 ? 'last 30d' : periodDays <= 90 ? 'last 90d' : 'lifetime';
+  const totalSpend = gd.sum.spend_usd + td.sum.spend + metaSpend;
+  const totalClk = gd.sum.clk + td.sum.clk + metaClk;
+  const totalConv = gd.sum.conv + td.sum.conv + metaSigninC + metaSigninB;
   const blendedCpl = totalConv ? totalSpend / totalConv : 0;
 
   $('kpiPaid').innerHTML = [
-    kpiCard({ color: 'green', label: 'Total paid spend', val: fmtUsd(totalSpend), unit: 'USD', sub: 'Google + TikTok за ' + Math.round((state.to - state.from)/86400000+1) + ' днів' }),
-    kpiCard({ color: 'blue', label: 'Total clicks', val: fmtN(totalClk), sub: 'клікі в кабінетах' }),
-    kpiCard({ color: 'amber', label: 'Конверсії (cabinet)', val: fmtN(totalConv), sub: 'реєстрації з пікселів' }),
-    kpiCard({ color: 'pink', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: blendedCpl ? `${fmtN(totalConv)} конв з кабінетів` : '' }),
+    kpiCard({ color: 'green', label: 'Total paid spend', val: fmtUsd(totalSpend), unit: 'USD', sub: `Google + TikTok + Meta · ${periodDays} днів` }),
+    kpiCard({ color: 'blue', label: 'Total clicks', val: fmtN(totalClk), sub: 'кліки з усіх кабінетів' }),
+    kpiCard({ color: 'amber', label: 'Конверсії (cabinet)', val: fmtN(totalConv), sub: 'GAds + TT + Meta signin' }),
+    kpiCard({ color: 'pink', label: 'Blended CPL', val: blendedCpl ? fmtUsd(blendedCpl) : '—', sub: blendedCpl ? `${fmtN(totalConv)} конв` : '' }),
   ].join('');
 
   // Paid cards — однакова висота, по 8 metrics в кожній
@@ -773,26 +817,26 @@ function renderPaid() {
     </div>
     <div class="paid-card meta">
       <div class="paid-head"><div class="paid-logo">M</div>
-        <div><div class="paid-name">Meta Ads</div><div class="paid-sub">GA4 only · 90 днів · API не доступний</div></div>
-        <span class="status-pill limited" style="margin-left:auto;">limited</span>
+        <div><div class="paid-name">Meta Ads</div><div class="paid-sub">act_657622620401742 · USD · snapshot ${snapshotLabel}</div></div>
+        <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
       <div class="paid-metric-row">
-        <div class="paid-metric"><div class="l">Spend USD</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">CPC</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">Imp</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">Clicks (cab)</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">CTR</div><div class="v">—</div></div>
-        <div class="paid-metric"><div class="l">Сесії GA4</div><div class="v">${fmtN(metaSess90)}</div></div>
-        <div class="paid-metric"><div class="l">Нові юзери</div><div class="v">${fmtN(metaNu90)}</div></div>
-        <div class="paid-metric"><div class="l">Conv GA4 events</div><div class="v">${fmtN(metaConv90)}</div></div>
+        <div class="paid-metric"><div class="l">Spend USD</div><div class="v">${fmtUsd(metaSpend)}</div></div>
+        <div class="paid-metric"><div class="l">Imp</div><div class="v">${fmtN(metaImp)}</div></div>
+        <div class="paid-metric"><div class="l">CPM USD</div><div class="v">${metaImp ? fmtUsd(metaSpend / metaImp * 1000) : '—'}</div></div>
+        <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(metaClk)}</div></div>
+        <div class="paid-metric"><div class="l">CTR</div><div class="v">${metaImp ? fmtPct(metaClk/metaImp) : '—'}</div></div>
+        <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${metaClk ? fmtUsd(metaSpend/metaClk) : '—'}</div></div>
+        <div class="paid-metric"><div class="l">SignIn C</div><div class="v">${fmtN(metaSigninC)}</div></div>
+        <div class="paid-metric"><div class="l">CPL Creator</div><div class="v">${metaSigninC ? fmtUsd(metaSpend/metaSigninC) : '—'}</div></div>
       </div>
-      <div class="muted" style="font-size:11px;margin-top:6px;">⚠ Meta for Developers не дає developer аккаунту — кабінетні дані недоступні. GA4 conv = event count, не unique users.</div>
+      <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((metaSpend/totalSpend)*100).toFixed(0)+'%' : '—'}</b> · LPV: ${fmtN(metaLPV)} · SignIn Brand: <b style="color:var(--accent-red);">${fmtN(metaSigninB)}</b></div>
     </div>
   `;
 
   // Spend chart — приховую дні з 0 spend
-  const allDaysRaw2 = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
-  const days = allDaysRaw2.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) > 0.01);
+  const allDaysRaw2 = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay), ...Object.keys(md.byDay)])).sort();
+  const days = allDaysRaw2.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) + ((md.byDay[d]||{}).spend_usd || 0) > 0.01);
   destroy('paidSpendChart');
   charts.paidSpendChart = new Chart($('paidSpendChart'), {
     type: 'bar',
@@ -801,6 +845,7 @@ function renderPaid() {
       datasets: [
         { label: 'Google Ads', data: days.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
         { label: 'TikTok', data: days.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
+        { label: 'Meta', data: days.map(d => (md.byDay[d]||{}).spend_usd || 0), backgroundColor: '#1877F2', stack: 'spend' },
       ],
     },
     options: {
@@ -866,15 +911,15 @@ function renderPaid() {
       <td class="num">${fmtN(ga4PaidTikTok.c)}</td>
     </tr>
     <tr>
-      <td><b>Meta Ads</b> <span class="badge amber">limited</span></td>
-      <td><span class="status-pill limited">GA4 only</span></td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
-      <td class="num muted">—</td>
+      <td><b>Meta Ads</b> <span class="badge blue">live</span></td>
+      <td><span class="status-pill live">active</span></td>
+      <td class="num">${fmtUsd(metaSpend)}</td>
+      <td class="num">${fmtN(metaImp)}</td>
+      <td class="num">${fmtN(metaClk)}</td>
+      <td class="num">${metaImp ? fmtPct(metaClk/metaImp) : '—'}</td>
+      <td class="num">${metaClk ? fmtUsd(metaSpend/metaClk) : '—'}</td>
+      <td class="num">${fmtN(metaSigninC + metaSigninB)}</td>
+      <td class="num">${(metaSigninC + metaSigninB) ? fmtUsd(metaSpend/(metaSigninC+metaSigninB)) : '—'}</td>
       <td class="num">${fmtN(ga4PaidMeta.s)} <span class="muted">(90d)</span></td>
       <td class="num">${fmtN(ga4PaidMeta.c)}</td>
     </tr>
@@ -1422,16 +1467,184 @@ function renderTikTok() {
 // META
 // ============================================================
 
+// Meta cabinet filter state
+let metaFilter = 'all';
+
 function renderMeta() {
+  // === КАБІНЕТНІ KPI (cabinet, реагує на period) ===
+  const mr = D.meta_real || {};
+  const sn = mr.snapshots || {};
+  const lifetime = sn.lifetime || {};
+
+  // Підбираємо snapshot під поточний period
+  const periodDaysM = Math.round((state.to - state.from)/86400000+1);
+  let periodLabel, snap;
+  if (periodDaysM <= 8) { snap = sn.last_7d || {}; periodLabel = '7d'; }
+  else if (periodDaysM <= 32) { snap = sn.last_30d || {}; periodLabel = '30d'; }
+  else if (periodDaysM <= 92) { snap = sn.last_90d || {}; periodLabel = '90d'; }
+  else { snap = sn.lifetime || {}; periodLabel = 'lifetime'; }
+
+  // Period snapshot значення
+  const pSpend = snap.spend || 0;
+  const pImp = snap.impressions || 0;
+  const pClk = snap.clicks || 0;
+  const pCTR = snap.ctr || 0;
+  const pCPC = snap.cpc || 0;
+  const pSigninC = (snap.conversions || {}).pintop_c_signin_click || 0;
+  const pSigninB = (snap.conversions || {}).pintop_b_signin_click || 0;
+  const pLPV = (snap.actions || {}).landing_page_view || 0;
+  const cplC_p = pSigninC > 0 ? (pSpend / pSigninC) : 0;
+  const cplB_p = pSigninB > 0 ? (pSpend / pSigninB) : 0;
+  const cpLPV_p = pLPV > 0 ? (pSpend / pLPV) : 0;
+
+  // Lifetime для контексту
+  const ltSpend = lifetime.spend || 0;
+  const ltSigninC = (lifetime.conversions || {}).pintop_c_signin_click || 0;
+  const ltSigninB = (lifetime.conversions || {}).pintop_b_signin_click || 0;
+  const cplC_lt = ltSigninC > 0 ? (ltSpend / ltSigninC) : 0;
+  const cplB_lt = ltSigninB > 0 ? (ltSpend / ltSigninB) : 0;
+  const lt30 = sn.last_30d || {};
+  const lt90 = sn.last_90d || {};
+  const lt7 = sn.last_7d || {};
+
+  $('kpiMetaCabinet').innerHTML = [
+    kpiCard({ color: 'blue', label: `Spend ${periodLabel}`, val: '$' + fmtN(pSpend), sub: `lifetime: $${fmtN(ltSpend)}` }),
+    kpiCard({ color: 'green', label: `Clicks ${periodLabel}`, val: fmtN(pClk), sub: `CPC $${pCPC.toFixed(2)} · CTR ${pCTR.toFixed(1)}%` }),
+    kpiCard({ color: 'pink', label: `CPL Creator ${periodLabel}`, val: cplC_p > 0 ? '$' + cplC_p.toFixed(2) : '—', sub: `${fmtN(pSigninC)} signin clicks · lt $${cplC_lt.toFixed(2)}` }),
+    kpiCard({ color: 'red', label: `CPL Brand ${periodLabel}`, val: cplB_p > 0 ? '$' + cplB_p.toFixed(0) : '—', sub: `${fmtN(pSigninB)} signin clicks · 🔴 broken funnel` }),
+    kpiCard({ color: 'amber', label: `Cost / LPV ${periodLabel}`, val: cpLPV_p > 0 ? '$' + cpLPV_p.toFixed(2) : '—', sub: `${fmtN(pLPV)} LPV` }),
+    kpiCard({ color: 'purple', label: 'Audiences (lifetime)', val: (mr.audience_stats || {}).total || 0, sub: `${(mr.audience_stats || {}).usable || 0} usable · ${(mr.audience_stats || {}).broken_lal || 0} broken LAL` }),
+  ].join('');
+
+  // === DAILY CHARTS — фільтрація під period (доступно 26 днів) ===
+  const dailyAll = mr.daily_full || [];
+  const dailyFiltered = dailyAll.filter(d => {
+    const dt = new Date(`${d.d.slice(0,4)}-${d.d.slice(4,6)}-${d.d.slice(6,8)}`);
+    return dt >= state.from && dt <= state.to;
+  });
+  const daily = dailyFiltered.length > 0 ? dailyFiltered : dailyAll;
+  const labels = daily.map(d => d.d.slice(4,6) + '/' + d.d.slice(6,8));
+  // Update chart title to reflect actual range
+  const chartTitle = $('metaChartTitle');
+  if (chartTitle) chartTitle.textContent = dailyFiltered.length > 0
+    ? `Spend USD по днях (${daily.length}d у періоді)`
+    : `Spend USD по днях (cabinet, ${daily.length}d — period виходить за 26d вікно)`;
+
+  destroy('metaDailySpend');
+  if (window.Chart && daily.length) {
+    const ctx = $('metaDailySpend');
+    if (ctx) {
+      charts.metaDailySpend = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Spend $', data: daily.map(d => d.spend_usd), backgroundColor: '#5B8FF9' },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: gridScale(), y: gridScale({ beginAtZero: true, ticks: { callback: v => '$' + v } }) }
+        }
+      });
+    }
+  }
+
+  destroy('metaDailyConv');
+  if (window.Chart && daily.length) {
+    const ctx = $('metaDailyConv');
+    if (ctx) {
+      charts.metaDailyConv = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'LPV', data: daily.map(d => d.lpv), borderColor: '#FFD166', backgroundColor: 'rgba(255,209,102,.1)', tension: 0.3 },
+            { label: 'Link clicks', data: daily.map(d => d.link_clk), borderColor: '#5B8FF9', backgroundColor: 'rgba(91,143,249,.1)', tension: 0.3, hidden: true },
+            { label: 'Video views', data: daily.map(d => d.video_view), borderColor: '#06D6A0', backgroundColor: 'rgba(6,214,160,.1)', tension: 0.3, hidden: true },
+            { label: 'Page eng.', data: daily.map(d => d.post_eng), borderColor: '#BE1C9A', backgroundColor: 'rgba(190,28,154,.1)', tension: 0.3, hidden: true },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { x: gridScale(), y: gridScale({ beginAtZero: true }) }
+        }
+      });
+    }
+  }
+
+  // === CAMPAIGN TABLE (cabinet) ===
+  renderMetaCampaigns();
+
+  // === PIXEL EVENTS ===
+  const pixels = mr.pixels || [];
+  const ltConv = lifetime.conversions || {};
+  const ltActions = lifetime.actions || {};
+  const valC = ltConv.pintop_c_valuable_viewing || 0;
+  const valB = ltConv.pintop_b_valuable_viewing || 0;
+  const fbCustom = ltActions['offsite_conversion.fb_pixel_custom'] || 0;
+  $('metaPixelEvents').innerHTML = `
+    <div class="grid grid-2" style="gap:8px;">
+      ${pixels.map(p => `
+        <div class="info-card ${p.is_active ? 'success' : 'warn'}" style="padding:10px;border-radius:8px;background:${p.is_active ? 'rgba(6,214,160,.06)' : 'rgba(255,165,0,.05)'};">
+          <div style="font-weight:600;font-size:12px;">${p.name}</div>
+          <div class="muted" style="font-size:10px;">ID: ${p.id}</div>
+          <div style="margin-top:6px;font-size:11px;">${p.is_active ? '✓ Активний' : '⚠ Не використовується'}</div>
+          <div class="muted" style="font-size:10px;">Last fired: ${p.last_fired_time.slice(0,10)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:14px;font-size:13px;">
+      <b>Pixel custom events (lifetime):</b>
+      <table class="t tight" style="margin-top:8px;">
+        <thead><tr><th>Event</th><th class="num">Count</th><th class="num">Cost / event</th></tr></thead>
+        <tbody>
+          <tr><td>pintop_c_valuable_viewing <span class="badge green">creator side</span></td><td class="num"><b>${fmtN(valC)}</b></td><td class="num">$${valC > 0 ? (ltSpend/valC).toFixed(2) : '—'}</td></tr>
+          <tr><td>pintop_c_signin_click <span class="badge green">creator side</span></td><td class="num"><b>${fmtN(ltSigninC)}</b></td><td class="num">$${cplC_lt > 0 ? cplC_lt.toFixed(2) : '—'}</td></tr>
+          <tr><td>pintop_b_valuable_viewing <span class="badge red">brand side</span></td><td class="num">${fmtN(valB)}</td><td class="num">$${valB > 0 ? (ltSpend/valB).toFixed(2) : '—'}</td></tr>
+          <tr style="background:rgba(239,71,111,.06);"><td>pintop_b_signin_click <span class="badge red">brand side</span> 🔴</td><td class="num">${fmtN(ltSigninB)}</td><td class="num">$${cplB_lt > 0 ? cplB_lt.toFixed(0) : '—'}</td></tr>
+          <tr><td class="muted">offsite_conversion.fb_pixel_custom (TOTAL)</td><td class="num">${fmtN(fbCustom)}</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // === AUDIENCES ===
+  const auds = mr.audiences || [];
+  const usable = auds.filter(a => a.status_code === 200);
+  const broken = auds.filter(a => a.status_code === 300);
+  $('metaAudiencesBlock').innerHTML = `
+    <div class="notice ${broken.length > 0 ? 'warning' : 'success'}" style="margin-bottom:10px;font-size:12px;">
+      ${broken.length > 0
+        ? `<b>${broken.length} broken LAL</b> — seed audiences (signin events) занадто малі. Поки signin events не виростуть до 1000+, нові LAL не будуються.`
+        : `<b>Всі ${auds.length} аудиторії usable.</b>`}
+    </div>
+    <div class="muted" style="font-size:11px;margin-bottom:6px;">Usable (${usable.length}):</div>
+    <table class="t tight">
+      <thead><tr><th>Audience</th><th>Type</th><th class="num">Size</th></tr></thead>
+      <tbody>
+        ${usable.map(a => `
+          <tr>
+            <td title="${a.name}" style="font-size:11px;">${a.name.length > 50 ? a.name.slice(0,50)+'…' : a.name}${a.based_on ? `<br><span class="muted" style="font-size:10px;">based on ${a.based_on}</span>` : ''}</td>
+            <td><span class="badge ${a.subtype === 'WEBSITE' ? 'blue' : a.subtype === 'LOOKALIKE' ? 'pink' : 'gray'}">${a.subtype}</span></td>
+            <td class="num">${a.size_lower > 0 ? fmtN(a.size_lower) : '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    ${broken.length > 0 ? `<div class="muted" style="font-size:11px;margin-top:10px;">Broken LAL (${broken.length}) — приховано. Видалити рекомендується.</div>` : ''}
+  `;
+
+  // === GA4 attribution view (старий блок) ===
   const stats = D.meta.stats || {};
   const merged = D.meta.utm_merged_90d || [];
-
-  const metaNotice = '<div class="notice info" style="margin:8px 0;font-size:12px;">ℹ Meta — 90d snapshot з GA4 (Marketing API не підключено). Не реагує на фільтр періоду.</div>';
-  $('kpiMeta').innerHTML = metaNotice + [
-    kpiCard({ color: 'blue', label: 'Current Meta (90d)', val: fmtN(stats.current_sess_90d), sub: `активні: Brands 20.04, Creators 18/19.04` }),
-    kpiCard({ color: 'pink', label: 'Нові юзери (активні)', val: fmtN(stats.current_nu_90d), sub: 'з нових запусків' }),
-    kpiCard({ color: 'green', label: 'GA4 conv events (активні)', val: fmtN(stats.current_conv_90d), sub: 'event count, не users' }),
-    kpiCard({ color: 'amber', label: 'У Unknown через paid_social', val: fmtN(stats.paid_social_unknown), sub: 'старі кампанії з неправильним medium' }),
+  $('kpiMeta').innerHTML = [
+    kpiCard({ color: 'blue', label: 'GA4 sessions (90d)', val: fmtN(stats.current_sess_90d || 0), sub: 'активні кампанії' }),
+    kpiCard({ color: 'pink', label: 'GA4 нові юзери (90d)', val: fmtN(stats.current_nu_90d || 0), sub: 'з нових запусків' }),
+    kpiCard({ color: 'green', label: 'GA4 conv events (90d)', val: fmtN(stats.current_conv_90d || 0), sub: 'event count' }),
+    kpiCard({ color: 'amber', label: 'paid_social в Unknown', val: fmtN(stats.paid_social_unknown || 0), sub: 'старі кампанії' }),
   ].join('');
 
   // Розбивка по типах
@@ -1481,6 +1694,75 @@ function renderMeta() {
     }).join('');
   }
 }
+
+function renderMetaCampaigns() {
+  const camps = (D.meta_real || {}).campaigns_lifetime || [];
+  // Period overlap filter: камп. яка крутилась хоча б один день в state.from..state.to
+  const fromMs = state.from.getTime();
+  const toMs = state.to.getTime();
+  const overlapsPeriod = (c) => {
+    const start = c.start ? new Date(c.start).getTime() : 0;
+    const stop = c.stop ? new Date(c.stop).getTime() : Date.now();
+    return start <= toMs && stop >= fromMs;
+  };
+
+  let filtered = camps.filter(overlapsPeriod);
+  if (metaFilter === 'active') filtered = filtered.filter(c => c.status === 'ACTIVE');
+  else if (metaFilter === 'lead_gen') filtered = filtered.filter(c => c.type === 'lead_gen');
+  else if (metaFilter === 'engagement_pb') filtered = filtered.filter(c => c.type === 'engagement_pb');
+
+  // GA4 utm для крос-перевірки
+  const tableEl = $('metaCabinetCampTable');
+  if (!tableEl) return;
+  tableEl.querySelector('tbody').innerHTML = filtered.map(c => {
+    const sideCls = c.side === 'brands' ? 'red' : c.side === 'creators' ? 'green' : c.side === 'creators_test' ? 'amber' : 'gray';
+    const statusCls = c.status === 'ACTIVE' ? 'green' : 'gray';
+    return `
+      <tr ${c.status === 'ACTIVE' ? 'style="background:rgba(6,214,160,.04);"' : ''}>
+        <td title="${c.name}" style="max-width:280px;">
+          <div style="font-weight:500;font-size:12px;">${c.name.length > 50 ? c.name.slice(0,50)+'…' : c.name}</div>
+          <div class="muted" style="font-size:10px;">${c.objective.replace('OUTCOME_','').toLowerCase()} · ${c.id}</div>
+        </td>
+        <td><span class="badge ${sideCls}">${c.side.replace('_', ' ')}</span></td>
+        <td><span class="muted" style="font-size:10px;">${c.type.replace('_', ' ')}</span></td>
+        <td><span class="badge ${statusCls}">${c.status.toLowerCase()}</span></td>
+        <td class="num"><b>$${c.spend_usd.toFixed(2)}</b></td>
+        <td class="num">${fmtN(c.imp)}</td>
+        <td class="num">${fmtN(c.clk)}</td>
+        <td class="num">${fmtPct(c.ctr/100)}</td>
+        <td class="num">$${c.cpc.toFixed(2)}</td>
+        <td class="num">${fmtN(c.lpv)}</td>
+        <td class="num ${c.signin_c > 0 ? '' : 'muted'}">${fmtN(c.signin_c)}</td>
+        <td class="num ${c.signin_b > 0 ? '' : 'muted'}">${fmtN(c.signin_b)}</td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="12" class="muted" style="text-align:center;padding:20px;">Немає кампаній за цим фільтром</td></tr>';
+
+  // Insights
+  const totalSpend = filtered.reduce((a,c) => a + c.spend_usd, 0);
+  const totalSigninC = filtered.reduce((a,c) => a + c.signin_c, 0);
+  const totalSigninB = filtered.reduce((a,c) => a + c.signin_b, 0);
+  const pbCount = filtered.filter(c => c.type === 'engagement_pb').length;
+  const pbSpend = filtered.filter(c => c.type === 'engagement_pb').reduce((a,c) => a + c.spend_usd, 0);
+  const lgSpend = filtered.filter(c => c.type === 'lead_gen').reduce((a,c) => a + c.spend_usd, 0);
+  const cplC = totalSigninC > 0 ? totalSpend / totalSigninC : 0;
+  const cplB = totalSigninB > 0 ? totalSpend / totalSigninB : 0;
+  $('metaCampInsight').innerHTML = `
+    <b>Кампанії що крутились у періоді ${fmtDate(dateKey(state.from))}→${fmtDate(dateKey(state.to))}:</b>
+    ${filtered.length} штук · lifetime spend цих кампаній $${totalSpend.toFixed(0)} · CPL Creator $${cplC.toFixed(2)} · CPL Brand ${cplB > 0 ? '$' + cplB.toFixed(0) : '—'}<br>
+    <span class="muted" style="font-size:11px;">PB engagement-тести: ${pbCount} (${totalSpend > 0 ? Math.round(pbSpend/totalSpend*100) : 0}% бюджету). Lead gen: $${lgSpend.toFixed(0)} (${totalSpend > 0 ? Math.round(lgSpend/totalSpend*100) : 0}%). Spend/CPL у таблиці = lifetime цифри по кампанії; для period-фільтра використано перетин дат запуску.</span>
+  `;
+}
+
+// Meta cabinet filter buttons
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-meta-filter]');
+  if (b) {
+    metaFilter = b.dataset.metaFilter;
+    document.querySelectorAll('[data-meta-filter]').forEach(x => x.classList.toggle('active', x === b));
+    renderMetaCampaigns();
+  }
+});
 
 // ============================================================
 // UTM
@@ -1922,12 +2204,30 @@ function renderInsights() {
   const brandReg = funnelByName['pintop_b_all_signinsignup'] || { users: 0 };
   const demoReq = funnelByName['pintopn_b_all_demo'] || { users: 0 };
   const conv23 = step2.users ? (step3.users / step2.users * 100).toFixed(0) : '—';
+  // Meta-specific insights
+  const mrIns = (D.meta_real || {});
+  const ltSn = (mrIns.snapshots || {}).lifetime || {};
+  const ltSigninCIns = (ltSn.conversions || {}).pintop_c_signin_click || 0;
+  const ltSigninBIns = (ltSn.conversions || {}).pintop_b_signin_click || 0;
+  const ltSpendIns = ltSn.spend || 0;
+  const pbCount = (mrIns.campaigns_lifetime || []).filter(c => c.type === 'engagement_pb').length;
+  const pbSpend = (mrIns.campaigns_lifetime || []).filter(c => c.type === 'engagement_pb').reduce((a,c) => a + c.spend_usd, 0);
+  const lgSpend = (mrIns.campaigns_lifetime || []).filter(c => c.type === 'lead_gen').reduce((a,c) => a + c.spend_usd, 0);
+
   $('funnelInsight').innerHTML = `
     <b>📊 Ключові висновки воронки (90 днів):</b><br>
     Клацнули "Sign up" креатора → <b>${fmtN(step2.users)}</b> юзерів.
     Довели OAuth у AIR → <b>${fmtN(step3.users)}</b>. Conversion ${step2.users ? conv23 + '%' : '—'} на цьому кроці.
     <br>B2B активність: <b>${fmtN(brandReg.users)}</b> клікнули на brand sign-up, <b>${fmtN(demoReq.users)}</b> дійшли до Book Demo форми.
     <br><b>⛔ Критично:</b> немає події <code>registration_complete</code> — не можемо виміряти точний CR "перейшов → зареєструвався". PPC оптимізує по проксі-події, що менш точно.
+    ${mrIns.connected ? `
+    <br><br><b>🔵 Meta Ads cabinet (lifetime, $${ltSpendIns.toFixed(0)} spend):</b><br>
+    Creator side: <b>${fmtN(ltSigninCIns)}</b> signin clicks, CPL $${ltSigninCIns ? (ltSpendIns/ltSigninCIns).toFixed(2) : '—'}.
+    Brand side: <b style="color:var(--red);">${fmtN(ltSigninBIns)}</b> signin clicks, CPL $${ltSigninBIns ? (ltSpendIns/ltSigninBIns).toFixed(0) : '—'} 🔴.
+    Співвідношення Creator:Brand = <b>${ltSigninBIns ? Math.round(ltSigninCIns/ltSigninBIns) + ':1' : '—'}</b> — двостороння платформа з критично слабкою brand-side воронкою.
+    <br><b>💸 PB engagement-тести</b>: ${pbCount} кампаній, $${pbSpend.toFixed(0)} (${ltSpendIns ? Math.round(pbSpend/ltSpendIns*100) : 0}% бюджету). Lead gen: $${lgSpend.toFixed(0)} (${ltSpendIns ? Math.round(lgSpend/ltSpendIns*100) : 0}%).
+    <br><b>👥 Audiences</b>: ${(mrIns.audience_stats||{}).usable || 0} usable, ${(mrIns.audience_stats||{}).broken_lal || 0} broken LAL — seed audiences замалі (~20 юзерів) для побудови нових Lookalike.
+    ` : ''}
   `;
 
   // Channel path — реклама vs органіка
@@ -2004,16 +2304,20 @@ function renderInsights() {
     const ad_meta = (D.tiktok.ads_list || []).find(x => x.id === String(a.ad_id));
     wasteAds.push({ ch: 'TikTok', name: (ad_meta && ad_meta.name) || a.ad_id, spend: a.spend });
   });
+  // Meta cabinet — кампанії з spend але 0 signin (lifetime)
+  ((D.meta_real || {}).campaigns_lifetime || []).filter(c => c.spend_usd > 10 && c.signin_c === 0 && c.signin_b === 0).slice(0, 3).forEach(c => {
+    wasteAds.push({ ch: 'Meta', name: c.name, spend: c.spend_usd, lifetime: true });
+  });
   wasteAds.sort((a,b) => b.spend - a.spend);
 
   const wasteKws = D.gads.keywords_30d.filter(k => k.cost_usd > 10 && k.conv === 0).slice(0, 3);
 
   $('bottomPerformers').innerHTML = `
     <div style="margin-bottom:12px;"><b style="color:var(--red);">💸 Креативи що з'їдають бюджет:</b></div>
-    ${wasteAds.length ? wasteAds.slice(0, 3).map(a => `
+    ${wasteAds.length ? wasteAds.slice(0, 5).map(a => `
       <div class="issue-item" style="border-left-color:var(--red);">
         <div>
-          <div class="issue-title">${a.ch}: ${(a.name || '').slice(0, 50)}</div>
+          <div class="issue-title">${a.ch}: ${(a.name || '').slice(0, 50)}${a.lifetime ? ' <span class="badge gray" style="font-size:9px;">lifetime</span>' : ''}</div>
           <div class="issue-body">Spend <b style="color:var(--red);">${fmtUsd(a.spend)}</b> · <b>0 конверсій</b> · зупини або зміни</div>
         </div>
       </div>`).join('') : '<div class="muted">Немає проблемних креативів — добре!</div>'}
@@ -2043,7 +2347,14 @@ function renderInsights() {
     {
       name: 'Meta Pixel налаштований',
       pass: true,
-      detail: '1234927445323510 (PinTop Pixel New) — основний для активного Ad Account',
+      detail: '1234927445323510 (PinTop Pixel New) — основний для активного Ad Account, last fired ' + (((D.meta_real || {}).pixels || []).filter(p => p.is_active)[0] || {}).last_fired_time?.slice(0, 10),
+    },
+    {
+      name: 'Meta Marketing API підключено',
+      pass: !!(D.meta_real || {}).connected,
+      detail: (D.meta_real || {}).connected
+        ? `act_657622620401742 через Pipeboard MCP — ${(D.meta_real.campaigns_lifetime || []).length} кампаній · $${((D.meta_real.snapshots || {}).lifetime || {}).spend?.toFixed(0) || 0} lifetime spend`
+        : '⛔ Не підключено — кабінетні дані недоступні',
     },
     {
       name: 'TikTok Pixel ON_WEB_REGISTER',
