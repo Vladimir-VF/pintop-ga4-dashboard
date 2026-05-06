@@ -577,11 +577,12 @@ function renderOverview() {
       <td class="num"><b>${((c.s/totChSess)*100).toFixed(1)}%</b></td>
     </tr>`).join('');
 
-  // Paid spend chart — фільтр днів з витратами > 0
+  // Paid spend chart — фільтр днів з витратами > 0 (Google + TikTok + Meta)
   const gd = aggGAdsDaily(state.from, state.to);
   const td = aggTTDaily(state.from, state.to);
-  const allDaysRaw = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay)])).sort();
-  const allDays = allDaysRaw.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) > 0.01);
+  const md = aggMetaDaily(state.from, state.to);
+  const allDaysRaw = Array.from(new Set([...Object.keys(gd.byDay), ...Object.keys(td.byDay), ...Object.keys(md.byDay)])).sort();
+  const allDays = allDaysRaw.filter(d => ((gd.byDay[d]||{}).spend_usd || 0) + ((td.byDay[d]||{}).spend || 0) + ((md.byDay[d]||{}).spend_usd || 0) > 0.01);
   destroy('overviewPaidSpend');
   charts.overviewPaidSpend = new Chart($('overviewPaidSpend'), {
     type: 'bar',
@@ -590,6 +591,7 @@ function renderOverview() {
       datasets: [
         { label: 'Google Ads', data: allDays.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
         { label: 'TikTok', data: allDays.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
+        { label: 'Meta', data: allDays.map(d => (md.byDay[d]||{}).spend_usd || 0), backgroundColor: '#F59E0B', stack: 'spend' },
       ],
     },
     options: {
@@ -1903,11 +1905,15 @@ function renderUtm() {
     </div>`;
   }).join('');
 
-  // Reconcile
+  // Reconcile (Google + TikTok + Meta cabinet vs GA4 utm)
   const gd = D.gads.campaigns_30d.reduce((a,c)=>({clk:a.clk+c.clk, conv:a.conv+c.conv}), {clk:0,conv:0});
   const tt = (D.tiktok.campaigns_30d||[]).reduce((a,c)=>({clk:a.clk+c.clk, conv:a.conv+c.conv}), {clk:0,conv:0});
+  const metaSn30 = ((D.meta_real||{}).snapshots||{}).last_30d || {};
+  const metaCabClk = metaSn30.clicks || 0;
+  const metaCabConv = ((metaSn30.conversions||{}).pintop_c_signin_click || 0) + ((metaSn30.conversions||{}).pintop_b_signin_click || 0);
   const ga4G = D.ga4.utm.filter(u=>u.src==='google'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
   const ga4T = D.ga4.utm.filter(u=>u.src==='tiktok'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
+  const ga4M = D.ga4.utm.filter(u=>(u.src==='meta'||u.src==='facebook'||u.src==='instagram')&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
   $('reconcileTable').querySelector('tbody').innerHTML = `
     <tr>
       <td><b>Google Ads</b></td>
@@ -1920,12 +1926,21 @@ function renderUtm() {
     </tr>
     <tr>
       <td><b>TikTok</b></td>
-      <td class="num">${fmtN(tt.clk)}</td>
+      <td class="num">${fmtN(tt.clk)} <span class="muted">(30d)</span></td>
       <td class="num">${fmtN(ga4T.s)} <span class="muted">(90d)</span></td>
       <td class="num"><span class="badge ${tt.clk > ga4T.s ? 'amber' : 'green'}">${tt.clk && ga4T.s ? ((ga4T.s-tt.clk)/tt.clk*100).toFixed(0)+'%' : '—'}</span></td>
       <td class="num">${fmtN(tt.conv)}</td>
       <td class="num">${fmtN(ga4T.c)}</td>
       <td class="num"><span class="badge ${tt.conv > ga4T.c ? 'red' : 'green'}">${tt.conv && ga4T.c ? ((ga4T.c-tt.conv)/tt.conv*100).toFixed(0)+'%' : '—'}</span></td>
+    </tr>
+    <tr>
+      <td><b>Meta</b></td>
+      <td class="num">${fmtN(metaCabClk)} <span class="muted">(30d)</span></td>
+      <td class="num">${fmtN(ga4M.s)} <span class="muted">(90d)</span></td>
+      <td class="num"><span class="badge ${metaCabClk > ga4M.s ? 'amber' : 'green'}">${metaCabClk && ga4M.s ? ((ga4M.s-metaCabClk)/metaCabClk*100).toFixed(0)+'%' : '—'}</span></td>
+      <td class="num">${fmtN(metaCabConv)}</td>
+      <td class="num">${fmtN(ga4M.c)}</td>
+      <td class="num"><span class="badge ${metaCabConv > ga4M.c ? 'red' : 'green'}">${metaCabConv && ga4M.c ? ((ga4M.c-metaCabConv)/metaCabConv*100).toFixed(0)+'%' : '—'}</span></td>
     </tr>
   `;
 }
@@ -2314,7 +2329,14 @@ function renderInsights() {
       allAds.push({ ch: 'TikTok', name: (ad_meta && ad_meta.name) || a.ad_id, spend: a.spend, conv: a.conv, cpa: a.spend/a.conv });
     }
   });
-  const topBy = allAds.slice().sort((a,b) => a.cpa - b.cpa).slice(0, 3);
+  // Meta — кампанії-рівень (per-ad cabinet daily недоступний), фільтр signin > 3
+  ((D.meta_real || {}).campaigns_lifetime || []).forEach(c => {
+    const totalSign = c.signin_c + c.signin_b;
+    if (totalSign > 3 && c.spend_usd > 0) {
+      allAds.push({ ch: 'Meta', name: c.name, spend: c.spend_usd, conv: totalSign, cpa: c.spend_usd/totalSign, lifetime: true });
+    }
+  });
+  const topBy = allAds.slice().sort((a,b) => a.cpa - b.cpa).slice(0, 5);
 
   const allKws = D.gads.keywords_30d.filter(k => k.conv > 3).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 3);
 
@@ -2323,7 +2345,7 @@ function renderInsights() {
     ${topBy.length ? topBy.map(a => `
       <div class="issue-item" style="border-left-color:var(--green);">
         <div>
-          <div class="issue-title">${a.ch}: ${a.name.slice(0, 50)}</div>
+          <div class="issue-title">${a.ch}: ${a.name.slice(0, 50)}${a.lifetime ? ' <span class="badge gray" style="font-size:9px;">lifetime</span>' : ''}</div>
           <div class="issue-body">CPL <b style="color:var(--green);">${fmtUsd(a.cpa)}</b> · ${a.conv} конв за ${fmtUsd(a.spend)}</div>
         </div>
       </div>`).join('') : '<div class="muted">Поки замало conv data для надійних переможців</div>'}
