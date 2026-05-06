@@ -156,6 +156,8 @@ const fmtDur = s => {
   return Math.floor(s/60) + 'м ' + Math.floor(s%60) + 'с';
 };
 const fmtDate = s => s.length === 8 ? s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8) : s;
+// fmtConv — для конверсій (Google smart counting може бути дробним 13.99). Округлюємо.
+const fmtConv = n => fmtN(Math.round(Number(n) || 0));
 const parseD = s => {
   if (s.length === 8) {
     return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
@@ -810,7 +812,7 @@ function renderPaid() {
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(gd.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${gd.sum.imp ? fmtPct(gd.sum.clk/gd.sum.imp) : '—'}</div></div>
         <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${gd.sum.clk ? fmtUsd(gd.sum.spend_usd/gd.sum.clk) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtN(gd.sum.conv)}</div></div>
+        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtConv(gd.sum.conv)}</div></div>
         <div class="paid-metric"><div class="l">CPA USD</div><div class="v">${gd.sum.conv ? fmtUsd(gd.sum.spend_usd/gd.sum.conv) : '—'}</div></div>
       </div>
       <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((gd.sum.spend_usd/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
@@ -827,7 +829,7 @@ function renderPaid() {
         <div class="paid-metric"><div class="l">Clicks</div><div class="v">${fmtN(td.sum.clk)}</div></div>
         <div class="paid-metric"><div class="l">CTR</div><div class="v">${td.sum.imp ? fmtPct(td.sum.clk/td.sum.imp) : '—'}</div></div>
         <div class="paid-metric"><div class="l">CPC USD</div><div class="v">${td.sum.clk ? fmtUsd(td.sum.spend/td.sum.clk) : '—'}</div></div>
-        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtN(td.sum.conv)}</div></div>
+        <div class="paid-metric"><div class="l">Conv (cabinet)</div><div class="v">${fmtConv(td.sum.conv)}</div></div>
         <div class="paid-metric"><div class="l">CPL USD</div><div class="v">${td.sum.conv ? fmtUsd(td.sum.spend/td.sum.conv) : '—'}</div></div>
       </div>
       <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((td.sum.spend/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
@@ -933,7 +935,7 @@ function renderPaid() {
       <td class="num">${fmtN(gd.sum.clk)}</td>
       <td class="num">${gd.sum.imp ? fmtPct(gd.sum.clk/gd.sum.imp) : '—'}</td>
       <td class="num">${gd.sum.clk ? fmtUsd(gd.sum.spend_usd/gd.sum.clk) : '—'}</td>
-      <td class="num">${fmtN(gd.sum.conv)}</td>
+      <td class="num">${fmtConv(gd.sum.conv)}</td>
       <td class="num">${gd.sum.conv ? fmtUsd(gd.sum.spend_usd/gd.sum.conv) : '—'}</td>
       <td class="num">${fmtN(ga4PaidGoogle.s)} <span class="muted">(90d)</span></td>
       <td class="num">${fmtN(ga4PaidGoogle.c)}</td>
@@ -946,7 +948,7 @@ function renderPaid() {
       <td class="num">${fmtN(td.sum.clk)}</td>
       <td class="num">${td.sum.imp ? fmtPct(td.sum.clk/td.sum.imp) : '—'}</td>
       <td class="num">${td.sum.clk ? fmtUsd(td.sum.spend/td.sum.clk) : '—'}</td>
-      <td class="num">${fmtN(td.sum.conv)}</td>
+      <td class="num">${fmtConv(td.sum.conv)}</td>
       <td class="num">${td.sum.conv ? fmtUsd(td.sum.spend/td.sum.conv) : '—'}</td>
       <td class="num">${fmtN(ga4PaidTikTok.s)} <span class="muted">(90d)</span></td>
       <td class="num">${fmtN(ga4PaidTikTok.c)}</td>
@@ -1065,7 +1067,7 @@ function renderGads() {
         <td class="num">${fmtN(c.clk)}</td>
         <td class="num">${fmtPct(c.ctr)}</td>
         <td class="num">${c.clk ? fmtUsd(c.cost_usd/c.clk) : '—'}</td>
-        <td class="num">${fmtN(c.conv)}</td>
+        <td class="num">${fmtConv(c.conv)}</td>
         <td class="num">${c.conv ? fmtUsd(c.cost_usd/c.conv) : '—'}</td>
         <td class="num">${c.is ? fmtPct(c.is) : '—'}</td>
       </tr>`;
@@ -1102,7 +1104,7 @@ function renderGads() {
                   <td class="num">${fmtUsd(a.cost_usd)}</td>
                   <td class="num">${fmtN(a.imp)}</td>
                   <td class="num">${fmtN(a.clk)}</td>
-                  <td class="num">${fmtN(a.conv)}</td>
+                  <td class="num">${fmtConv(a.conv)}</td>
                   <td class="num">${a.conv ? fmtUsd(a.cost_usd/a.conv) : '—'}</td>
                 </tr>`).join('')}
             </tbody>
@@ -1130,7 +1132,7 @@ function renderGads() {
       <td class="num">${fmtN(g.clk)}</td>
       <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
       <td class="num">${g.clk ? fmtUsd(g.cost_usd/g.clk) : '—'}</td>
-      <td class="num">${fmtN(g.conv)}</td>
+      <td class="num">${fmtConv(g.conv)}</td>
       <td class="num">${g.conv ? `<span class="badge ${g.cost_usd/g.conv < 1 ? 'green' : g.cost_usd/g.conv < 3 ? 'amber' : 'red'}">${fmtUsd(g.cost_usd/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
     </tr>`).join('') || '<tr><td colspan="10" class="muted" style="text-align:center;padding:20px;">Немає adgroups за фільтром</td></tr>';
 
@@ -1158,7 +1160,7 @@ function renderGads() {
       <td class="num">${fmtN(k.clk)}</td>
       <td class="num"><span class="badge ${k.ctr > 0.05 ? 'green' : k.ctr > 0.02 ? 'amber' : 'red'}">${fmtPct(k.ctr)}</span></td>
       <td class="num">${k.clk ? fmtUsd(k.cost_usd/k.clk) : '—'}</td>
-      <td class="num">${fmtN(k.conv)}</td>
+      <td class="num">${fmtConv(k.conv)}</td>
       <td class="num">${k.conv ? fmtUsd(k.cost_usd/k.conv) : '—'}</td>
     </tr>`).join('');
 
@@ -1169,7 +1171,7 @@ function renderGads() {
   $('gadsKwInsight').innerHTML = `
     <b>📊 Інсайти по ключах:</b><br>
     🏆 <b>Топ за обсягом spend:</b> ${topKwBySpend.map(k => `"${k.kw}" (${fmtUsd(k.cost_usd)})`).join(', ')}.
-    ${topKwByConv.length ? `<br>🎯 <b>Найдешевші конв:</b> ${topKwByConv.map(k => `"${k.kw}" (CPA ${fmtUsd(k.cost_usd/k.conv)}, ${k.conv} конв)`).join(', ')}. — масштабуй ці.` : ''}
+    ${topKwByConv.length ? `<br>🎯 <b>Найдешевші конв:</b> ${topKwByConv.map(k => `"${k.kw}" (CPA ${fmtUsd(k.cost_usd/k.conv)}, ${Math.round(k.conv)} конв)`).join(', ')}. — масштабуй ці.` : ''}
     ${wasteKw.length ? `<br>⛔ <b>Прокляті ключі (spend > $10, 0 conv):</b> ${wasteKw.map(k => `"${k.kw}" (${fmtUsd(k.cost_usd)})`).join(', ')}. Додай негативи або ріж.` : ''}
   `;
 
@@ -1184,7 +1186,7 @@ function renderGads() {
       <td class="num">${fmtN(a.imp)}</td>
       <td class="num">${fmtN(a.clk)}</td>
       <td class="num">${fmtPct(a.ctr)}</td>
-      <td class="num">${fmtN(a.conv)}</td>
+      <td class="num">${fmtConv(a.conv)}</td>
       <td class="num">${a.conv ? fmtUsd(a.cost_usd/a.conv) : '—'}</td>
     </tr>`).join('');
 
@@ -1307,7 +1309,7 @@ function renderTikTok() {
         <td class="num">${fmtN(c.clk)}</td>
         <td class="num">${fmtPct(c.ctr/100)}</td>
         <td class="num">${c.cpc ? fmtUsd(c.cpc) : '—'}</td>
-        <td class="num">${fmtN(c.conv)}</td>
+        <td class="num">${fmtConv(c.conv)}</td>
         <td class="num">${c.conv ? fmtUsd(c.spend/c.conv) : '—'}</td>
       </tr>`;
   }).join('');
@@ -1343,7 +1345,7 @@ function renderTikTok() {
                   <td class="num">${fmtN(g.imp)}</td>
                   <td class="num">${fmtN(g.clk)}</td>
                   <td class="num">${fmtPct(g.ctr/100)}</td>
-                  <td class="num">${fmtN(g.conv)}</td>
+                  <td class="num">${fmtConv(g.conv)}</td>
                   <td class="num">${g.conv ? fmtUsd(g.spend/g.conv) : '—'}</td>
                 </tr>`).join('')}
             </tbody>
@@ -1397,7 +1399,7 @@ function renderTikTok() {
         <td class="num">${fmtN(g.clk)}</td>
         <td class="num">${g.imp ? fmtPct(g.clk/g.imp) : '—'}</td>
         <td class="num">${g.clk ? fmtUsd(g.spend/g.clk) : '—'}</td>
-        <td class="num">${fmtN(g.conv)}</td>
+        <td class="num">${fmtConv(g.conv)}</td>
         <td class="num">${g.conv ? `<span class="badge ${g.spend/g.conv < 3 ? 'green' : g.spend/g.conv < 6 ? 'amber' : 'red'}">${fmtUsd(g.spend/g.conv)}</span>` : '<span class="muted">—</span>'}</td>
       </tr>`;
   }).join('') || '<tr><td colspan="11" class="muted" style="text-align:center;padding:20px;">Немає adsets за обраним фільтром</td></tr>';
@@ -1449,7 +1451,7 @@ function renderTikTok() {
         <td class="num"><b>${fmtUsd(a.spend)}</b></td>
         <td class="num">${fmtN(a.clk)}</td>
         <td class="num">${a.imp ? fmtPct(a.clk/a.imp) : '—'}</td>
-        <td class="num">${fmtN(a.conv)}</td>
+        <td class="num">${fmtConv(a.conv)}</td>
         <td class="num">${a.conv ? `<span class="badge ${a.spend/a.conv < 3 ? 'green' : a.spend/a.conv < 6 ? 'amber' : 'red'}">${fmtUsd(a.spend/a.conv)}</span>` : '<span class="muted">—</span>'}</td>
         <td>${link}</td>
       </tr>`;
@@ -1905,42 +1907,53 @@ function renderUtm() {
     </div>`;
   }).join('');
 
-  // Reconcile (Google + TikTok + Meta cabinet vs GA4 utm)
+  // Reconcile: cabinet 30d vs GA4 utm 30d (apples to apples)
   const gd = D.gads.campaigns_30d.reduce((a,c)=>({clk:a.clk+c.clk, conv:a.conv+c.conv}), {clk:0,conv:0});
   const tt = (D.tiktok.campaigns_30d||[]).reduce((a,c)=>({clk:a.clk+c.clk, conv:a.conv+c.conv}), {clk:0,conv:0});
   const metaSn30 = ((D.meta_real||{}).snapshots||{}).last_30d || {};
   const metaCabClk = metaSn30.clicks || 0;
   const metaCabConv = ((metaSn30.conversions||{}).pintop_c_signin_click || 0) + ((metaSn30.conversions||{}).pintop_b_signin_click || 0);
-  const ga4G = D.ga4.utm.filter(u=>u.src==='google'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
-  const ga4T = D.ga4.utm.filter(u=>u.src==='tiktok'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
-  const ga4M = D.ga4.utm.filter(u=>(u.src==='meta'||u.src==='facebook'||u.src==='instagram')&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
+  // GA4 30d (utm_src_30d), а не 90d — apples to apples
+  const utm30 = D.ga4.utm_src_30d || [];
+  const ga4G = utm30.filter(u=>u.src==='google'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
+  const ga4T = utm30.filter(u=>u.src==='tiktok'&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
+  const ga4M = utm30.filter(u=>(u.src==='meta'||u.src==='facebook'||u.src==='instagram')&&u.med==='cpc').reduce((a,r)=>({s:a.s+r.s,c:a.c+r.c}),{s:0,c:0});
+
+  // Δ для clicks: показуємо коефіцієнт. У межах 0.5x–1.5x = норма (зелений), інакше amber.
+  const deltaClkPct = (cab, ga) => (!cab || !ga) ? '—' : ((ga-cab)/cab*100).toFixed(0)+'%';
+  const deltaClkCls = (cab, ga) => {
+    if (!cab || !ga) return 'gray';
+    const r = ga / cab;
+    return (r >= 0.5 && r <= 1.5) ? 'green' : 'amber';
+  };
+
   $('reconcileTable').querySelector('tbody').innerHTML = `
     <tr>
-      <td><b>Google Ads</b></td>
-      <td class="num">${fmtN(gd.clk)} <span class="muted">(30d)</span></td>
-      <td class="num">${fmtN(ga4G.s)} <span class="muted">(90d)</span></td>
-      <td class="num"><span class="badge ${gd.clk > ga4G.s ? 'amber' : 'green'}">${gd.clk && ga4G.s ? ((ga4G.s-gd.clk)/gd.clk*100).toFixed(0)+'%' : '—'}</span></td>
-      <td class="num">${fmtN(gd.conv)}</td>
+      <td><b>Google Ads</b> <span class="muted" style="font-size:10px;">cpc · 30d</span></td>
+      <td class="num">${fmtN(gd.clk)}</td>
+      <td class="num">${fmtN(ga4G.s)}</td>
+      <td class="num"><span class="badge ${deltaClkCls(gd.clk, ga4G.s)}">${deltaClkPct(gd.clk, ga4G.s)}</span></td>
+      <td class="num">${fmtConv(gd.conv)}</td>
       <td class="num">${fmtN(ga4G.c)}</td>
-      <td class="num"><span class="badge ${gd.conv > ga4G.c ? 'red' : 'green'}">${gd.conv && ga4G.c ? ((ga4G.c-gd.conv)/gd.conv*100).toFixed(0)+'%' : '—'}</span></td>
+      <td class="num muted" style="font-size:10px;" title="GA4 conv = event count усіх pintop_*_signinsignup events; cabinet = унікальні signups з пікселя — не порівнювати прямо">не порівн.</td>
     </tr>
     <tr>
-      <td><b>TikTok</b></td>
-      <td class="num">${fmtN(tt.clk)} <span class="muted">(30d)</span></td>
-      <td class="num">${fmtN(ga4T.s)} <span class="muted">(90d)</span></td>
-      <td class="num"><span class="badge ${tt.clk > ga4T.s ? 'amber' : 'green'}">${tt.clk && ga4T.s ? ((ga4T.s-tt.clk)/tt.clk*100).toFixed(0)+'%' : '—'}</span></td>
-      <td class="num">${fmtN(tt.conv)}</td>
+      <td><b>TikTok</b> <span class="muted" style="font-size:10px;">cpc · 30d</span></td>
+      <td class="num">${fmtN(tt.clk)}</td>
+      <td class="num">${fmtN(ga4T.s)}</td>
+      <td class="num"><span class="badge ${deltaClkCls(tt.clk, ga4T.s)}">${deltaClkPct(tt.clk, ga4T.s)}</span></td>
+      <td class="num">${fmtConv(tt.conv)}</td>
       <td class="num">${fmtN(ga4T.c)}</td>
-      <td class="num"><span class="badge ${tt.conv > ga4T.c ? 'red' : 'green'}">${tt.conv && ga4T.c ? ((ga4T.c-tt.conv)/tt.conv*100).toFixed(0)+'%' : '—'}</span></td>
+      <td class="num muted" style="font-size:10px;">не порівн.</td>
     </tr>
     <tr>
-      <td><b>Meta</b></td>
-      <td class="num">${fmtN(metaCabClk)} <span class="muted">(30d)</span></td>
-      <td class="num">${fmtN(ga4M.s)} <span class="muted">(90d)</span></td>
-      <td class="num"><span class="badge ${metaCabClk > ga4M.s ? 'amber' : 'green'}">${metaCabClk && ga4M.s ? ((ga4M.s-metaCabClk)/metaCabClk*100).toFixed(0)+'%' : '—'}</span></td>
-      <td class="num">${fmtN(metaCabConv)}</td>
+      <td><b>Meta</b> <span class="muted" style="font-size:10px;">cpc · 30d</span></td>
+      <td class="num">${fmtN(metaCabClk)}</td>
+      <td class="num">${fmtN(ga4M.s)}</td>
+      <td class="num"><span class="badge ${deltaClkCls(metaCabClk, ga4M.s)}">${deltaClkPct(metaCabClk, ga4M.s)}</span></td>
+      <td class="num">${fmtConv(metaCabConv)}</td>
       <td class="num">${fmtN(ga4M.c)}</td>
-      <td class="num"><span class="badge ${metaCabConv > ga4M.c ? 'red' : 'green'}">${metaCabConv && ga4M.c ? ((ga4M.c-metaCabConv)/metaCabConv*100).toFixed(0)+'%' : '—'}</span></td>
+      <td class="num muted" style="font-size:10px;">не порівн.</td>
     </tr>
   `;
 }
@@ -2238,16 +2251,20 @@ function renderInsights() {
   const showFunnel = stepsDef.map(s => ({ ...s, ...(funnelByName[s.event] || { count: 0, users: 0, conv: 0 }) }));
   $('funnelTable').querySelector('tbody').innerHTML = showFunnel.map((f, i) => {
     const prev = i > 0 && showFunnel[i-1].users > 0 ? showFunnel[i-1].users : null;
-    const dropTxt = prev && f.users ? ((f.users / prev) * 100).toFixed(0) + '%' : i === 0 ? '100%' : '—';
-    const dropCls = !prev ? 'gray' : (f.users/prev < 0.2) ? 'red' : (f.users/prev < 0.5) ? 'amber' : 'green';
+    const ratio = prev && f.users ? f.users / prev : null;
+    let dropTxt, dropCls;
+    if (i === 0) { dropTxt = '100%'; dropCls = 'green'; }
+    else if (ratio == null) { dropTxt = '—'; dropCls = 'gray'; }
+    else if (ratio > 1.05) { dropTxt = '⚠ ' + (ratio*100).toFixed(0) + '%'; dropCls = 'amber'; }  // Більше попереднього — крос-домен tracking artifact
+    else { dropTxt = (ratio*100).toFixed(0) + '%'; dropCls = ratio < 0.2 ? 'red' : ratio < 0.5 ? 'amber' : 'green'; }
     return `
       <tr>
         <td>${f.icon} <b>${f.step}</b></td>
         <td class="mono muted">${f.event}</td>
         <td class="num">${fmtN(f.count)}</td>
         <td class="num"><b>${fmtN(f.users)}</b></td>
-        <td class="num"><span class="badge ${dropCls}">${dropTxt}</span></td>
-        <td class="num">${fmtN(f.conv)}</td>
+        <td class="num"><span class="badge ${dropCls}" title="${ratio > 1.05 ? 'Більше попереднього кроку — це event на іншому домені (AIR), не строге продовження воронки' : ''}">${dropTxt}</span></td>
+        <td class="num">${fmtConv(f.conv)}</td>
       </tr>`;
   }).join('');
 
@@ -2338,15 +2355,15 @@ function renderInsights() {
   });
   const topBy = allAds.slice().sort((a,b) => a.cpa - b.cpa).slice(0, 5);
 
-  const allKws = D.gads.keywords_30d.filter(k => k.conv > 3).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 3);
+  const allKws = D.gads.keywords_30d.filter(k => k.conv > 3).sort((a,b) => (a.cost_usd/a.conv) - (b.cost_usd/b.conv)).slice(0, 5);
 
   $('topPerformers').innerHTML = `
-    <div style="margin-bottom:12px;"><b style="color:var(--green);">🎬 Топ креативи за CPL:</b></div>
+    <div style="margin-bottom:12px;"><b style="color:var(--green);">🎬 Топ оголошення за CPL:</b> <span class="muted" style="font-weight:400;font-size:11px;">(Google = текст RSA, TikTok/Meta = відео/візуал)</span></div>
     ${topBy.length ? topBy.map(a => `
       <div class="issue-item" style="border-left-color:var(--green);">
         <div>
           <div class="issue-title">${a.ch}: ${a.name.slice(0, 50)}${a.lifetime ? ' <span class="badge gray" style="font-size:9px;">lifetime</span>' : ''}</div>
-          <div class="issue-body">CPL <b style="color:var(--green);">${fmtUsd(a.cpa)}</b> · ${a.conv} конв за ${fmtUsd(a.spend)}</div>
+          <div class="issue-body">CPL <b style="color:var(--green);">${fmtUsd(a.cpa)}</b> · ${Math.round(a.conv)} конв за ${fmtUsd(a.spend)}</div>
         </div>
       </div>`).join('') : '<div class="muted">Поки замало conv data для надійних переможців</div>'}
     <div style="margin:14px 0 10px;"><b style="color:var(--green);">🔑 Топ ключові слова за CPA:</b></div>
@@ -2354,13 +2371,13 @@ function renderInsights() {
       <div class="issue-item" style="border-left-color:var(--green);">
         <div>
           <div class="issue-title">"${k.kw}" <span class="badge gray">${k.mt}</span></div>
-          <div class="issue-body">CPA <b style="color:var(--green);">${fmtUsd(k.cost_usd/k.conv)}</b> · ${k.conv} конв · ${fmtN(k.imp)} імп</div>
+          <div class="issue-body">CPA <b style="color:var(--green);">${fmtUsd(k.cost_usd/k.conv)}</b> · ${Math.round(k.conv)} конв · ${fmtN(k.imp)} імп</div>
         </div>
       </div>`).join('') : '<div class="muted">Недостатньо конверсій по ключах</div>'}
   `;
 
   const wasteAds = [];
-  D.gads.ads_30d.filter(a => a.cost_usd > 10 && a.conv === 0).slice(0, 3).forEach(a => wasteAds.push({ ch: 'Google', name: a.headline, spend: a.cost_usd }));
+  D.gads.ads_30d.filter(a => a.cost_usd > 10 && a.conv === 0).slice(0, 5).forEach(a => wasteAds.push({ ch: 'Google', name: a.headline, spend: a.cost_usd }));
   (D.tiktok.ads_30d || []).filter(a => a.spend > 10 && a.conv === 0).slice(0, 3).forEach(a => {
     const ad_meta = (D.tiktok.ads_list || []).find(x => x.id === String(a.ad_id));
     wasteAds.push({ ch: 'TikTok', name: (ad_meta && ad_meta.name) || a.ad_id, spend: a.spend });
@@ -2371,10 +2388,10 @@ function renderInsights() {
   });
   wasteAds.sort((a,b) => b.spend - a.spend);
 
-  const wasteKws = D.gads.keywords_30d.filter(k => k.cost_usd > 10 && k.conv === 0).slice(0, 3);
+  const wasteKws = D.gads.keywords_30d.filter(k => k.cost_usd > 10 && k.conv === 0).slice(0, 5);
 
   $('bottomPerformers').innerHTML = `
-    <div style="margin-bottom:12px;"><b style="color:var(--red);">💸 Креативи що з'їдають бюджет:</b></div>
+    <div style="margin-bottom:12px;"><b style="color:var(--red);">💸 Оголошення що з'їдають бюджет:</b></div>
     ${wasteAds.length ? wasteAds.slice(0, 5).map(a => `
       <div class="issue-item" style="border-left-color:var(--red);">
         <div>
