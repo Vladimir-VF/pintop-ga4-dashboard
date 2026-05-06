@@ -119,6 +119,21 @@ const el = (tag, cls, html) => {
 };
 
 const PALETTE = ['#06D6A0', '#7C3AED', '#BE1C9A', '#3B82F6', '#F59E0B', '#F87171', '#14b8a6', '#ec4899', '#84cc16', '#60a5fa', '#a78bfa', '#fb7185'];
+
+// === Brand SVG logos (inline для незалежності від файлів) ===
+const LOGO_GOOGLE = `<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" aria-label="Google Ads">
+  <path fill="#FBBC04" d="M11.3 18.96L6.75 21.59c-.55.32-1.21.4-1.82.22-.61-.18-1.13-.6-1.45-1.16L1.66 17.5c-.32-.55-.4-1.21-.22-1.82.18-.61.6-1.13 1.16-1.45L7.15 11.6 11.3 18.96z"/>
+  <path fill="#4285F4" d="M22.34 17.51l-8.43-14.6c-.66-1.15-2.13-1.54-3.27-.88L7.15 4.07c-1.15.66-1.54 2.13-.88 3.27L14.7 21.94c.66 1.15 2.13 1.54 3.27.88l3.49-2.04c1.15-.66 1.54-2.12.88-3.27z"/>
+  <circle fill="#34A853" cx="5.4" cy="18.6" r="3"/>
+</svg>`;
+const LOGO_TIKTOK = `<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" aria-label="TikTok">
+  <path fill="#25F4EE" d="M19.6 8.43c-1.95 0-3.7-.65-5.13-1.72v7.66c0 3.84-3.13 6.96-6.97 6.96-1.49 0-2.86-.46-4-1.25 1.27.97 2.84 1.55 4.55 1.55 3.84 0 6.96-3.12 6.96-6.96v-7.66c1.43 1.07 3.18 1.72 5.13 1.72v-3.4-.01c-.18 0-.36-.02-.54-.04v.05c0 .15-.02.3-.04.45.01-.45.04-.9.04-1.35z"/>
+  <path fill="#000" d="M14.47 14.37V6.71c1.43 1.07 3.18 1.72 5.13 1.72V5.04c-1.07-.23-2.02-.79-2.74-1.6-1.4-.99-2.32-2.61-2.32-4.44h-3.45v14.97c-.04 1.84-1.55 3.32-3.4 3.32-1.1 0-2.07-.52-2.7-1.32-.97-.62-1.62-1.7-1.62-2.94 0-1.91 1.55-3.46 3.46-3.46.36 0 .7.06 1.02.15v-3.51a6.97 6.97 0 0 0-.97-.07c-3.84 0-6.96 3.12-6.96 6.96 0 2.34 1.16 4.41 2.94 5.66 1.14.79 2.51 1.25 4 1.25 3.84 0 6.96-3.12 6.96-6.96z"/>
+  <path fill="#FE2C55" d="M19.6 5.04v-.92c-1.05 0-2.04-.32-2.86-.86.71.81 1.66 1.39 2.86 1.78zM11.59-.01v15.49a3.4 3.4 0 0 1-3.4 3.32c-1.02 0-1.93-.46-2.55-1.18.62.8 1.6 1.32 2.7 1.32 1.85 0 3.36-1.48 3.4-3.32V.07c.34.01.68-.04.96-.13a3.74 3.74 0 0 1-1.11.05zM7.78 8.65v-.98a6.97 6.97 0 0 0-.97-.07c-3.84 0-6.96 3.12-6.96 6.96 0 2.34 1.16 4.41 2.94 5.66-1.78-1.26-2.94-3.32-2.94-5.66 0-3.84 3.12-6.96 6.96-6.96.33 0 .65.04.97.07z"/>
+</svg>`;
+const LOGO_META = `<svg viewBox="0 0 36 36" width="28" height="28" xmlns="http://www.w3.org/2000/svg" aria-label="Meta">
+  <path fill="#1877F2" d="M28.5 9.4c-2.6 0-4.6 2-7.7 6.5l-1 1.5c-2.4 3.6-3.5 5-5 5-1.6 0-2.7-1.5-2.7-4.4 0-3.5 1.7-7 4.4-7 1.4 0 2.6.6 4.7 2.7l2-2.9c-2.2-2-4.4-3.4-7.1-3.4-4.7 0-8.2 4.6-8.2 10.6 0 4.5 2.2 7.6 6 7.6 2.6 0 4.4-1.4 7-5.4l2.5-3.7c2-3 2.7-3.7 3.7-3.7 1.1 0 2.2 1 2.2 4.1 0 3.4-1.6 4.7-3.6 4.7-.9 0-1.7-.4-2.6-1.1l-2 2.9c1.4 1.3 3.1 2.3 5 2.3 4.5 0 7.2-3.1 7.2-8 0-5.5-2.8-8.3-6.8-8.3z"/>
+</svg>`;
 const CHANNEL_COLORS = {
   'Direct': '#7C3AED', 'Organic Search': '#06D6A0', 'Paid Search': '#3B82F6',
   'Paid Social': '#BE1C9A', 'Paid Video': '#F59E0B', 'Organic Social': '#14b8a6',
@@ -782,7 +797,7 @@ function renderPaid() {
   const metaConv90 = D.meta.utm_90d.reduce((a,r)=>a+r.c,0);
   $('paidCards').innerHTML = `
     <div class="paid-card google">
-      <div class="paid-head"><div class="paid-logo">G</div>
+      <div class="paid-head"><div class="paid-logo google-logo">${LOGO_GOOGLE}</div>
         <div><div class="paid-name">Google Ads</div><div class="paid-sub">Customer 3651749366 · AED → USD</div></div>
         <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
@@ -799,7 +814,7 @@ function renderPaid() {
       <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((gd.sum.spend_usd/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
     </div>
     <div class="paid-card tiktok">
-      <div class="paid-head"><div class="paid-logo">♪</div>
+      <div class="paid-head"><div class="paid-logo tiktok-logo">${LOGO_TIKTOK}</div>
         <div><div class="paid-name">TikTok Ads</div><div class="paid-sub">Adv 7587396752228171783 · USD</div></div>
         <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
@@ -816,7 +831,7 @@ function renderPaid() {
       <div class="muted" style="font-size:11px;margin-top:6px;">% від total spend: <b style="color:var(--text-primary);">${totalSpend ? ((td.sum.spend/totalSpend)*100).toFixed(0)+'%' : '—'}</b></div>
     </div>
     <div class="paid-card meta">
-      <div class="paid-head"><div class="paid-logo">M</div>
+      <div class="paid-head"><div class="paid-logo meta-logo">${LOGO_META}</div>
         <div><div class="paid-name">Meta Ads</div><div class="paid-sub">act_657622620401742 · USD · snapshot ${snapshotLabel}</div></div>
         <span class="status-pill live" style="margin-left:auto;">live</span>
       </div>
@@ -845,7 +860,7 @@ function renderPaid() {
       datasets: [
         { label: 'Google Ads', data: days.map(d => (gd.byDay[d]||{}).spend_usd || 0), backgroundColor: '#3B82F6', stack: 'spend' },
         { label: 'TikTok', data: days.map(d => (td.byDay[d]||{}).spend || 0), backgroundColor: '#BE1C9A', stack: 'spend' },
-        { label: 'Meta', data: days.map(d => (md.byDay[d]||{}).spend_usd || 0), backgroundColor: '#1877F2', stack: 'spend' },
+        { label: 'Meta', data: days.map(d => (md.byDay[d]||{}).spend_usd || 0), backgroundColor: '#F59E0B', stack: 'spend' },
       ],
     },
     options: {
@@ -883,10 +898,34 @@ function renderPaid() {
   const ga4PaidTikTok = D.ga4.utm.filter(u => u.src === 'tiktok' && u.med === 'cpc').reduce((a,r) => ({s:a.s+r.s, c:a.c+r.c}), {s:0,c:0});
   const ga4PaidMeta = D.ga4.utm.filter(u => (u.src === 'meta' || u.src === 'facebook') && u.med === 'cpc').reduce((a,r) => ({s:a.s+r.s, c:a.c+r.c}), {s:0,c:0});
 
+  // Реальний статус каналу: кампанії що FACTично крутяться зараз (status=running AND stop у майбутньому або нема)
+  const nowMs = Date.now();
+  const gActive = (D.gads.campaigns_30d || []).filter(c => c.status === 'ENABLED').length;
+  const gTotal = (D.gads.campaigns_30d || []).length;
+  // TikTok: ENABLE = working, DISABLE = paused/stopped
+  const ttActive = (D.tiktok.campaigns_list || []).filter(c => (c.status || '').includes('OK') || (c.status || '') === 'ENABLE').length;
+  const ttTotal = (D.tiktok.campaigns_list || []).length;
+  // Meta: ACTIVE з stop_time у майбутньому або без stop_time
+  const metaCamps = ((D.meta_real || {}).campaigns_lifetime || []);
+  const metaTrulyActive = metaCamps.filter(c => {
+    if (c.status !== 'ACTIVE') return false;
+    if (!c.stop) return true;
+    const stopMs = new Date(c.stop).getTime();
+    return stopMs >= nowMs;
+  }).length;
+  const metaTotal = metaCamps.length;
+
+  // Статус-пілл функція з реальною логікою
+  const statusPill = (active, total) => {
+    if (active > 0) return `<span class="status-pill live">active</span> <span class="muted" style="font-size:10px;">${active}/${total}</span>`;
+    if (total > 0) return `<span class="status-pill paused">paused</span> <span class="muted" style="font-size:10px;">0/${total}</span>`;
+    return `<span class="status-pill paused">no data</span>`;
+  };
+
   $('paidCrossTable').querySelector('tbody').innerHTML = `
     <tr>
       <td><b>Google Ads</b> <span class="badge blue">live</span></td>
-      <td><span class="status-pill live">active</span></td>
+      <td>${statusPill(gActive, gTotal)}</td>
       <td class="num">${fmtUsd(gd.sum.spend_usd)}</td>
       <td class="num">${fmtN(gd.sum.imp)}</td>
       <td class="num">${fmtN(gd.sum.clk)}</td>
@@ -899,7 +938,7 @@ function renderPaid() {
     </tr>
     <tr>
       <td><b>TikTok Ads</b> <span class="badge pink">live</span></td>
-      <td><span class="status-pill live">active</span></td>
+      <td>${statusPill(ttActive, ttTotal)}</td>
       <td class="num">${fmtUsd(td.sum.spend)}</td>
       <td class="num">${fmtN(td.sum.imp)}</td>
       <td class="num">${fmtN(td.sum.clk)}</td>
@@ -911,8 +950,8 @@ function renderPaid() {
       <td class="num">${fmtN(ga4PaidTikTok.c)}</td>
     </tr>
     <tr>
-      <td><b>Meta Ads</b> <span class="badge blue">live</span></td>
-      <td><span class="status-pill live">active</span></td>
+      <td><b>Meta Ads</b> <span class="badge amber">live</span></td>
+      <td>${statusPill(metaTrulyActive, metaTotal)}</td>
       <td class="num">${fmtUsd(metaSpend)}</td>
       <td class="num">${fmtN(metaImp)}</td>
       <td class="num">${fmtN(metaClk)}</td>

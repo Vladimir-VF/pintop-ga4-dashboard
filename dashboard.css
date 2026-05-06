@@ -989,7 +989,7 @@ button {
 }
 .paid-card.tiktok { --accent: #ff0050; }
 .paid-card.google { --accent: #4285f4; }
-.paid-card.meta { --accent: #0866ff; }
+.paid-card.meta { --accent: #F59E0B; }
 .paid-card.blended { --accent: var(--green); }
 
 .paid-head {
@@ -1008,10 +1008,13 @@ button {
   font-weight: 900;
   color: white;
   flex-shrink: 0;
+  background: rgba(255,255,255,.92);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.05);
 }
-.paid-card.tiktok .paid-logo { background: linear-gradient(135deg, #ff0050, #00f2ea); }
-.paid-card.google .paid-logo { background: linear-gradient(135deg, #4285f4, #34a853); color: white; }
-.paid-card.meta .paid-logo { background: linear-gradient(135deg, #0866ff, #1877f2); }
+.paid-logo svg { display: block; }
+.paid-card.tiktok .paid-logo { background: #fff; }
+.paid-card.google .paid-logo { background: #fff; }
+.paid-card.meta .paid-logo { background: #fff; }
 .paid-card.blended .paid-logo { background: linear-gradient(135deg, var(--green), var(--purple)); color: #0a0a0a; }
 
 .paid-name {
